@@ -1,0 +1,14 @@
+// $Id: units.hoc,v 1.1 2011/10/11 14:45:23 samn Exp $ 
+
+//* conversions
+
+func ms2sec () { return $1/1e3 }
+func ms2min () { return ms2sec($1)/60 }
+func sec2ms () { return $1*1e3 }
+func sec2min () { return $1/60 }
+func min2ms () { return sec2ms($1)*60 }
+func min2sec () { return $1*60 }
+
+func rad2deg () { return $1 * 57.29578 }
+func deg2rad () { return $1/57.29578 }
+

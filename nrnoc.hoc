@@ -15,12 +15,12 @@ strdef temp_string_, user_string_  // needed for simctrl
 /* Global variable default values.  NOTE that stdrun.hoc, stdgraph.hoc
 and simctrl.hoc all contain variable definitions and thus default.hoc
 should be loaded after these files */
-load_file("default.hoc")      /* Load default.hoc */
+//load_file("default.hoc")      /* Load default.hoc */
 
 /* Allows arrays of strings */
 objref hoc_obj_[2]
-load_file("stdgui.hoc") // don't want to encounter other String tempate defs
-load_file("simctrl.hoc")
+//load_file("stdgui.hoc") // don't want to encounter other String tempate defs
+//load_file("simctrl.hoc")
 
 proc run () {
   running_ = 1
@@ -402,7 +402,7 @@ proc method () { local prc
 }
 
 //* Load local modifications to nrnoc.hoc and default.hoc
-load_file("local.hoc")
+//load_file("local.hoc")
 
 if (xwindows && graph_flag) { nrnmainmenu() } // pwman_place(50,50)
 

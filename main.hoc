@@ -185,7 +185,7 @@ proc setArmParams() {
 
 proc loadSimFiles() {
 // Stuff run-neuron does.  (Comment out when using run-neuron.)
-xopen("etup.hoc")
+xopen("setup.hoc")
 xopen("nrnoc.hoc")
 load_file("init.hoc")
 // Load the "current sim" files.

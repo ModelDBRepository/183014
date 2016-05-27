@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# Run - sets library path required for OpenSceneGraphics and runs Tests (musculoskeletal arm model) 
+
+# set library path
+echo export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/msarm/lib
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/msarm/lib
+
+# run muscskel model with xml file as input paramter
+echo msarm $1
+$PWD/msarm/msarm $1
+

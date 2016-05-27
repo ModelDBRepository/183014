@@ -1,0 +1,161 @@
+// $Id: hinton.hoc,v 1.46 2009/10/23 21:58:22 billl Exp $
+
+// load_file("hinton.hoc")
+load_file("colors.hoc")
+
+//* decl
+declare("nilsl",nil,"ghint",nil,"cmat",new Vector(),"sepvec",new Vector(),"sepvec1",new Vector())
+declare("sepy",0,"yoff",0,"xsep",0,"ysep",0)
+nilsl = new SectionList()
+wdt=1
+rot=1 // rotate so that the trace appears from lower L to upper R
+scly=1
+// func mod101 () { return($1%101) }
+// cmat.resize(500*100)
+// cmat.indgen()
+// cmat.apply("mod101")
+// plot2d(ghint,-90,50)
+// draw2d(ghint,cmat,500)
+
+printf("Hinton plot typical sequence: plot2d(ghint) wdt=0.1 draw2d(ghint,cmat,sqrt(cmat.size))\n")
+
+//* plot2d(g[,min,max,ratio]); plot2d(g[,vec,ratio]); plot2d(g,ratio)
+proc plot2d () { local ratio,width
+  if (!isassigned($o1)) {
+    $o1 = new PlotShape(nilsl,0)
+    flush_list.append($o1)
+  }
+  c1($o1,63)
+  ratio=1 width=500
+  if (numarg()>=2) {
+    if (argtype(2)==1) {
+      $o1.scale($o2.min,$o2.max)
+      if (numarg()>=3) ratio=$3
+    } else {
+      if (numarg()==2) ratio=$2
+      if (numarg()>=3) $o1.scale($2,$3)
+      if (numarg()>=4) ratio=$4
+    }
+  } else $o1.scale(0,100)
+  $o1.view(0,100,0,100,100,50,width,ratio*500)
+  $o1.erase_all
+}
+
+// drawppm(vec,file,[cols]) draw bitmap directly into file
+proc drawppm () { local a localobj v1,v2,v3
+  a=allocvecs(v1,v2,v3)
+  if (numarg()>=3) cols=$3
+  c1m(clm) // clm holds an nqs of color values
+  v2.resize(clm.size(1))
+  v2.rgb(clm.v,clm.v[1],clm.v[2],1)
+  v1.copy($o1)
+  v1.scale(0,63)
+  v1.rnd() // indices into v2
+  v3.resize(v1.size)
+  v3.index(v2,v1)
+  if (scly>1) {
+    v1.transpose(v3,cols)
+    v2.resample(v1,scly)
+    v3.resize(v2.size)
+    v3.transpose(v2,rows*scly)
+  }
+  tmpfile.wopen($s2)
+  v3.ppmwr(tmpfile,cols)
+  dealloc(a)
+}
+
+//** draw2d(g,mat,cols) draw matrix
+proc he () { ghint.erase_all() }
+// may want to have additional sepvecy in future -- for now only using with squares 
+proc draw2d () { local i,j,k,ny,nx,xs,ys
+  if (numarg()>=3) nx=$3 else nx=cols
+  if (sepvec.size>0){ revec(sepvec1,0)
+    if (xsep!=ysep) printf("WARNING sepvec1 won't work\n")
+    j=0    
+    for i=0,sepvec.size-2 sepvec1.append(sepvec.x[i]+(j+=xsep))
+  }
+  xs=ys=0
+  ny=$o2.size/nx
+  if (ny!=int(ny)) {printf("draw2dERR %g x %g ??\n",nx,ny) return}
+  if (!rot) {
+    for i=0,nx-1 { ys=0
+      if (sepvec.size>0) {if (sepvec.contains(i)) xs+=xsep} else xs+=xsep
+      for j=0,ny-1  { k=ny-1-j  // k is reverse of j
+                   // ptr            xloc         yloc                               xsz    ysz
+       if (sepvec.size>0) { if (sepvec.contains(j)) ys+=ysep } else ys+=ysep
+       $o1.hinton(&$o2.x[j*nx+i],xs+(i+.5)*wdt,-ys+yoff+(k+.5)*wdt*scly+sepy*(k+.5), wdt, wdt*scly) 
+      }
+    }
+  } else for i=0,nx-1 { xs=0
+    if (sepvec.size>0) {if (sepvec.contains(i)) ys+=ysep} else ys+=ysep
+    for j=0,ny-1 {
+      if (sepvec.size>0) { if (sepvec.contains(j)) xs+=xsep } else xs+=xsep
+      $o1.hinton(&$o2.x[j*nx+i],xs+(j+.5)*wdt,ys+yoff+(i+.5)*wdt*scly+sepy*(k+.5), wdt, wdt*scly) 
+    }
+  }
+  $o1.size(0, i*wdt, yoff, yoff+j*wdt*scly)
+  $o1.exec_menu("Shape Plot")
+  $o1.exec_menu("Zoom in/out")
+  $o1.flush
+}
+
+//** drawhalf(g,mat,cols) draws the lower half of correlation matrix
+proc drawhalf () { local i,j,k,ny,nx,n localobj v1,g
+  g=$o1 v1=$o2
+  if (numarg()>=3) cols=nx=$3 else nx=cols
+  ny=nx
+  if ((cols-1)!=v1.size*2/cols) {printf("drawhalfERR %g,%g ??\n",nx,v1.size*2/nx+1) return}
+  n=0
+  for i=0,nx-2 for j=i+1,ny-1 {
+    g.hinton(&v1.x[n], (j+.5)*wdt, yoff+(i+.5)*wdt*scly+sepy*(k+.5), wdt, wdt*scly) 
+    n+=1
+  }
+  g.size(0, i*wdt, yoff, yoff+j*wdt*scly)
+  g.exec_menu("Shape Plot")
+  g.exec_menu("Zoom in/out")
+  g.flush
+}
+
+
+//** hgg(color_vec, yloc_vec, xloc[, xwidth, flag]) flag means horizontal
+// like gg() but draw vec vs vec as a hinton plot
+proc hgg () { local xyloc,flag,max,ii,a,wdt,wflag
+  if (numarg()==0) {
+    print "hgg(color_vec, yloc_vec, xloc[, xwidth (vec or num), flag]) flag means horizontal"
+    return }
+  a=allocvecs(1)
+  xyloc=$3
+  flag=wflag=0
+  wdt=$o2.max/12 // to put 12 in a row next to each other and get square
+  if (numarg()>=4) if (argtype(4)==1) wflag=1 else wdt=$4
+  if (numarg()>=5) flag=$5
+  mso[a].deriv($o2,1,1) mso[a].append(mso[a].mean) mso[a].add(0.01*mso[a].mean)
+  for ii=0,$o1.size-1 {
+    if (wflag) wdt=$o4.x[ii]+1e-3 // should be non-zero width
+    if (flag){
+      ghint.hinton(&$o1.x[ii],$o2.x[ii]+mso[a].x[ii]/2, xyloc, mso[a].x[ii], wdt)
+    } else  {         // color   xloc           yloc                  xsz       ysz
+      ghint.hinton(&$o1.x[ii], xyloc, $o2.x[ii]+mso[a].x[ii]/2, wdt, mso[a].x[ii]) }
+      // print $o1.x[ii], xyloc, $o2.x[ii]+mso[a].x[ii]/2, wdt, mso[a].x[ii]
+  }
+  dealloc(a)
+}
+
+proc showghint () {
+  ghint.exec_menu("Shape Plot")
+  ghint.exec_menu("View = plot")
+  ghint.fastflush
+  doEvents()
+}
+
+//** anim2d(g,mat,cols) draws slowly
+proc anim2d () { local i,j,ny,nx
+  $o1.erase_all ny=$o2.size/nx
+  if (numarg()>=3) nx=$3 else nx=cols
+  wdt=.01
+  for i=0,nx-1 {
+    for j=0,ny-1 $o1.hinton(&$o2.x[j*nx+i],(i+.5)*wdt,(j+.5)*wdt,wdt)
+    $o1.flush
+    doEvents()
+  }
+}

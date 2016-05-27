@@ -1,0 +1,66 @@
+<Simulation name="human">
+	<System name="3DGaitModel2392Arms">
+		<AdditionalFileDir name="./obj_textures" />
+		<OsimFile name="SUNY_arm_2DOFs_horizon.osim">
+			<LoadForces load_all="true" muscle_apply_force="true" need_compute_actu="true" need_load="true" sys_active="true" use_fatigue="false">
+			</LoadForces> 
+			<LoadGeometry need_load="false" />
+		</OsimFile>
+		<ScaleMuscleToRelax name="Muscles" />
+		<ForceSubsystems>
+			<JointLimitActutorForceSubsystem>
+				<Coefficients>2500 1000 500 1500</Coefficients>
+			</JointLimitActutorForceSubsystem>       
+		</ForceSubsystems>
+		<EventHandlers>
+			<MuscleStatusEventHandler>
+				<Interval> 10e-3</Interval>
+				<PntOutput name="SUNY_arm_2DOFs_horizon_static_muscle_status.pnt" /> 
+				<LOAMuscleForceSubsystem name="Muscles" />
+				<MuscleNames all="false">
+					DELT1  DELT2 DELT3 Infraspinatus Latissimus_dorsi_1 Latissimus_dorsi_2 Latissimus_dorsi_3 Teres_minor PECM1 PECM2 PECM3 Coracobrachialis TRIlong TRIlat TRImed BIClong BICshort BRA  
+				</MuscleNames>		
+				<MuscleVars all="false">	
+                    excitation
+					activation
+					force
+				</MuscleVars>
+				<PortSend2>32001</PortSend2>		
+			</MuscleStatusEventHandler>
+			<MuscleExcitationSetterEventHandler>
+				<Interval> 10e-3</Interval>
+				<LOAMuscleForceSubsystem name="Muscles" />
+				<MuscleNames all="false">
+					DELT1 DELT2 DELT3 Infraspinatus Latissimus_dorsi_1 Latissimus_dorsi_2 Latissimus_dorsi_3 Teres_minor PECM1 PECM2 PECM3 Coracobrachialis TRIlong TRIlat TRImed BIClong BICshort BRA 
+				</MuscleNames>
+				<Body name="SUNY_2DOF_Arm_Model" />
+				<CoordinateNames all="true">
+					arm_flex   elbow_flex
+				</CoordinateNames>	
+				<PortReceive>31000</PortReceive>		
+			</MuscleExcitationSetterEventHandler>
+			<CoordinateOutputEventHandler>
+				<Interval> 10e-3</Interval>
+				<Body name="SUNY_2DOF_Arm_Model" />
+				<CoordinateNames all="true">
+					arm_flex   elbow_flex
+				</CoordinateNames>					
+				<PntOutput name="SUNY_arm_2DOFs_horizon_static_coordinate_status.pnt" /> 
+				<PortSend1>32000</PortSend1>		
+			</CoordinateOutputEventHandler>
+		</EventHandlers>
+	</System>
+	<Dynamics>
+		<PntOutput name="SUNY_arm_2DOFs_horizon_static_state.pnt" /> 
+		<TimeStep> 1.0e-4 </TimeStep>
+		<TimeStepper> 
+			<SynTimeStepper />
+		</TimeStepper>
+		<Integrator>
+			<EulerIntegrator />
+			<LSODAIntegrator />
+			<RungeKuttaImplicitIntegrator />
+		</Integrator>
+	</Dynamics>
+	<EndTime>5.0</EndTime>
+</Simulation>

@@ -1,0 +1,528 @@
+// $Id: colors.hoc,v 1.19 2010/01/30 21:28:05 samn Exp $
+
+load_file("nqs.hoc")
+objref clm[10],pl
+proc colors () {}
+
+// c2(pl,63)
+// (remove-idraw-text)
+proc showscale () { 
+  if (!isassigned(pl)) pl=new PlotShape()
+  pl.erase_all
+  crescale(pl,10,72)
+}
+
+proc crescale () {
+  $o1.scale($2,$3)
+  $o1.exec_menu("Space Plot")
+  $o1.exec_menu("Shape Plot")
+  $o1.flush
+}
+
+//* cbin(min,max): binary colormap
+proc cbin () {
+  $o1.colormap(2)
+  $o1.colormap(0, 255, 0, 0)
+  $o1.colormap(1, 255, 255, 0)
+  $o1.scale($2, $3)
+}
+
+//* ternary color map
+proc ctern () {
+  $o1.colormap(3)
+  $o1.colormap(0, 255, 0, 0)
+  $o1.colormap(1, 255, 255, 0)
+  $o1.colormap(2, 0, 0, 255)
+  $o1.scale($2, $3)
+}
+
+//* cbw(min,max): b/w binary colormap
+proc cbw () {
+  $o1.colormap(2)
+  $o1.colormap(0, 0, 0, 0)
+  $o1.colormap(1, 255, 255, 255)
+  $o1.scale($2, $3)
+}
+
+//* gmap(ghint,numlevels,scalemin,scalemax,[maxcolor]) - grayscale color map of numlevels
+proc gmap () { local nc,clr,i,fctr,maxc
+  clr=0 nc=$2
+  if(numarg()>4)maxc=$5 else maxc=192
+  if(nc>maxc) nc=maxc
+  $o1.colormap(nc)
+  if(nc==256 && maxc==255) fctr=1 else fctr = int(maxc/nc)
+  for i=0,nc-1 {
+    $o1.colormap(i, clr, clr, clr)
+    clr += fctr    
+  }
+  $o1.scale($3,$4)
+}
+
+//* usage: c1m(PLT,# colors)
+
+
+//* usage: c1(PLT,# colors)
+proc c1 () { local sz,j,jmp,n
+  if ($2>63) { print "2nd arg must be < 63" return }
+  sz=$2 j=n=-1 jmp=int(63/sz)
+  $o1.colormap(sz)
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,0,143.438) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,0,159.375) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,0,175.312) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,0,191.25) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,0,207.188) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,0,223.125) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,0,239.062) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,0,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,15.9375,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,31.875,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,47.8125,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,63.75,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,79.6875,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,95.625,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,111.562,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,127.5,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,143.438,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,159.375,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,175.312,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,191.25,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,207.188,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,223.125,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,239.062,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,255,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,15.9375,255,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,31.875,255,239.062) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,47.8125,255,223.125) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,63.75,255,207.188) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,79.6875,255,191.25) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,95.625,255,175.312) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,111.562,255,159.375) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,127.5,255,143.438) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,143.438,255,127.5) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,159.375,255,111.562) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,175.312,255,95.625) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,191.25,255,79.6875) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,207.188,255,63.75) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,223.125,255,47.8125) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,239.062,255,31.875) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,255,15.9375) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,255,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,239.062,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,223.125,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,207.188,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,191.25,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,175.312,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,159.375,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,143.438,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,127.5,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,111.562,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,95.625,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,79.6875,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,63.75,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,47.8125,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,31.875,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,15.9375,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,239.062,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,223.125,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,207.188,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,191.25,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,175.312,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,159.375,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,143.438,0,0) }
+}
+
+proc c1m () { local sz,j,jmp,n
+  if ($2>63) { print "2nd arg must be < 40" return }
+  sz=$2 j=n=-1 jmp=int(40/sz)
+  $o1.colormap(sz)
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,0,143.438)  }		    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,0,159.375)  }		    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,0,175.312)  }		    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,0,191.25)  }		    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,0,207.188)  }		    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,0,223.125)  }		    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,0,239.062)  }		    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,0,255)  }		    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,15.9375,255)  }		    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,31.875,255)  }		    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,47.8125,255)  }		    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,63.75,255)  }		    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,79.6875,255)  }		    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,95.625,255)  }		    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,111.562,255)  }		    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,127.5,255)  }		    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,143.438,255)  }		    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,159.375,255)  }		    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,175.312,255)  }		    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,191.25,255)  }		    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,207.188,255)  }		    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,223.125,255)  }		    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,239.062,255)  }		    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,255,255)  }		    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,15.9375,255,255)  }	    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,31.875,255,239.062)  }	    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,47.8125,255,223.125)  }	    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,63.75,255,207.188)  }	    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,79.6875,255,191.25)  }	    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,95.625,255,175.312)  }	    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,111.562,255,159.375)  }	    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,127.5,255,143.438)  }	    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,143.438,255,127.5)  }	    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,159.375,255,111.562)  }	    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,175.312,255,95.625)  }	    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,191.25,255,79.6875)  }	    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,207.188,255,63.75)  }	    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,223.125,255,47.8125)  }	    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,239.062,255,31.875)  }	    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,255,15.9375)  }	    
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,255,0)  }		    
+}
+
+proc c1a () { local sz,j,jmp,n
+  if ($2>63) { print "2nd arg must be < 63" return }
+  sz=$2 j=n=-1 jmp=int(63/sz)
+  $o1.colormap(sz)
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,255,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,0,143.438) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,0,159.375) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,0,175.312) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,0,191.25) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,0,207.188) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,0,223.125) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,0,239.062) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,0,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,15.9375,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,31.875,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,47.8125,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,63.75,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,79.6875,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,95.625,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,111.562,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,127.5,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,143.438,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,159.375,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,175.312,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,191.25,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,207.188,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,223.125,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,239.062,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,255,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,15.9375,255,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,31.875,255,239.062) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,47.8125,255,223.125) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,63.75,255,207.188) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,79.6875,255,191.25) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,95.625,255,175.312) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,111.562,255,159.375) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,127.5,255,143.438) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,143.438,255,127.5) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,159.375,255,111.562) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,175.312,255,95.625) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,191.25,255,79.6875) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,207.188,255,63.75) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,223.125,255,47.8125) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,239.062,255,31.875) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,255,15.9375) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,255,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,239.062,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,223.125,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,207.188,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,191.25,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,175.312,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,159.375,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,143.438,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,127.5,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,111.562,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,95.625,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,79.6875,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,63.75,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,47.8125,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,31.875,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,15.9375,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,239.062,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,223.125,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,207.188,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,191.25,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,175.312,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,159.375,0,0) }
+}
+
+//* usage: cprint(PLT,# colors) -- extract colors for marks
+// eg graph.color(0,"#ffffff")
+// cprint(sh,19) // to get 19 colors
+proc cprint () { local sz,j,jmp,n
+  if ($2>63) { print "2nd arg must be < 63" return }
+  sz=$2 j=n=-1 jmp=int(63/sz)
+  $o1.colormap(sz)
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,0,207.188) printf("%d \"#%02x%02x%02x\"\n", n,0,0,207.188) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,0,223.125) printf("%d \"#%02x%02x%02x\"\n", n,0,0,223.125) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,0,239.062) printf("%d \"#%02x%02x%02x\"\n", n,0,0,239.062) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,0,255) printf("%d \"#%02x%02x%02x\"\n", n,0,0,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,15.9375,255) printf("%d \"#%02x%02x%02x\"\n", n,0,15.9375,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,31.875,255) printf("%d \"#%02x%02x%02x\"\n", n,0,31.875,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,47.8125,255) printf("%d \"#%02x%02x%02x\"\n", n,0,47.8125,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,63.75,255) printf("%d \"#%02x%02x%02x\"\n", n,0,63.75,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,79.6875,255) printf("%d \"#%02x%02x%02x\"\n", n,0,79.6875,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,95.625,255) printf("%d \"#%02x%02x%02x\"\n", n,0,95.625,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,111.562,255) printf("%d \"#%02x%02x%02x\"\n", n,0,111.562,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,127.5,255) printf("%d \"#%02x%02x%02x\"\n", n,0,127.5,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,143.438,255) printf("%d \"#%02x%02x%02x\"\n", n,0,143.438,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,159.375,255) printf("%d \"#%02x%02x%02x\"\n", n,0,159.375,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,175.312,255) printf("%d \"#%02x%02x%02x\"\n", n,0,175.312,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,191.25,255) printf("%d \"#%02x%02x%02x\"\n", n,0,191.25,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,207.188,255) printf("%d \"#%02x%02x%02x\"\n", n,0,207.188,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,223.125,255) printf("%d \"#%02x%02x%02x\"\n", n,0,223.125,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,239.062,255) printf("%d \"#%02x%02x%02x\"\n", n,0,239.062,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,255,255) printf("%d \"#%02x%02x%02x\"\n", n,0,255,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,15.9375,255,255) printf("%d \"#%02x%02x%02x\"\n", n,15.9375,255,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,31.875,255,239.062) printf("%d \"#%02x%02x%02x\"\n", n,31.875,255,239.062) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,47.8125,255,223.125) printf("%d \"#%02x%02x%02x\"\n", n,47.8125,255,223.125) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,63.75,255,207.188) printf("%d \"#%02x%02x%02x\"\n", n,63.75,255,207.188) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,79.6875,255,191.25) printf("%d \"#%02x%02x%02x\"\n", n,79.6875,255,191.25) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,95.625,255,175.312) printf("%d \"#%02x%02x%02x\"\n", n,95.625,255,175.312) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,111.562,255,159.375) printf("%d \"#%02x%02x%02x\"\n", n,111.562,255,159.375) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,127.5,255,143.438) printf("%d \"#%02x%02x%02x\"\n", n,127.5,255,143.438) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,143.438,255,127.5) printf("%d \"#%02x%02x%02x\"\n", n,143.438,255,127.5) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,159.375,255,111.562) printf("%d \"#%02x%02x%02x\"\n", n,159.375,255,111.562) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,175.312,255,95.625) printf("%d \"#%02x%02x%02x\"\n", n,175.312,255,95.625) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,191.25,255,79.6875) printf("%d \"#%02x%02x%02x\"\n", n,191.25,255,79.6875) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,207.188,255,63.75) printf("%d \"#%02x%02x%02x\"\n", n,207.188,255,63.75) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,223.125,255,47.8125) printf("%d \"#%02x%02x%02x\"\n", n,223.125,255,47.8125) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,239.062,255,31.875) printf("%d \"#%02x%02x%02x\"\n", n,239.062,255,31.875) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,255,15.9375) printf("%d \"#%02x%02x%02x\"\n", n,255,255,15.9375) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,255,0) printf("%d \"#%02x%02x%02x\"\n", n,255,255,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,239.062,0) printf("%d \"#%02x%02x%02x\"\n", n,255,239.062,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,223.125,0) printf("%d \"#%02x%02x%02x\"\n", n,255,223.125,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,207.188,0) printf("%d \"#%02x%02x%02x\"\n", n,255,207.188,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,191.25,0) printf("%d \"#%02x%02x%02x\"\n", n,255,191.25,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,175.312,0) printf("%d \"#%02x%02x%02x\"\n", n,255,175.312,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,159.375,0) printf("%d \"#%02x%02x%02x\"\n", n,255,159.375,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,143.438,0) printf("%d \"#%02x%02x%02x\"\n", n,255,143.438,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,127.5,0) printf("%d \"#%02x%02x%02x\"\n", n,255,127.5,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,111.562,0) printf("%d \"#%02x%02x%02x\"\n", n,255,111.562,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,95.625,0) printf("%d \"#%02x%02x%02x\"\n", n,255,95.625,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,79.6875,0) printf("%d \"#%02x%02x%02x\"\n", n,255,79.6875,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,63.75,0) printf("%d \"#%02x%02x%02x\"\n", n,255,63.75,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,47.8125,0) printf("%d \"#%02x%02x%02x\"\n", n,255,47.8125,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,31.875,0) printf("%d \"#%02x%02x%02x\"\n", n,255,31.875,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,15.9375,0) printf("%d \"#%02x%02x%02x\"\n", n,255,15.9375,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,0,0) printf("%d \"#%02x%02x%02x\"\n", n,255,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,239.062,0,0) printf("%d \"#%02x%02x%02x\"\n", n,239.062,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,223.125,0,0) printf("%d \"#%02x%02x%02x\"\n", n,223.125,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,207.188,0,0) printf("%d \"#%02x%02x%02x\"\n", n,207.188,0,0) }
+}
+
+//* c2()
+proc c2 () { local sz,j,jmp,n 
+  if ($2>63) { print "2nd arg must be < 63" return }
+  sz=$2 j=n=-1 jmp=int(63/sz)
+  $o1.colormap(sz)
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,23.919,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,47.8125,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,71.706,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,95.625,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,119.544,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,143.438,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,167.331,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,191.25,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,215.169,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,239.062,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,247.044,255,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,223.125,255,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,199.206,255,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,175.312,255,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,151.419,255,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,127.5,255,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,103.581,255,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,79.6875,255,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,55.794,255,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,31.875,255,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,7.956,255,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,255,15.9375) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,255,39.831) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,255,63.75) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,255,87.669) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,255,111.562) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,255,135.456) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,255,159.375) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,255,183.294) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,255,207.188) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,255,231.081) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,255,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,231.081,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,207.188,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,183.294,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,159.375,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,135.456,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,111.562,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,87.669,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,63.75,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,39.831,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,0,15.9375,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,7.956,0,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,31.875,0,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,55.794,0,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,79.6875,0,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,103.581,0,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,127.5,0,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,151.419,0,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,175.312,0,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,199.206,0,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,223.125,0,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,247.044,0,255) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,0,239.062) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,0,215.169) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,0,191.25) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,0,167.331) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,0,143.438) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,0,119.544) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,0,95.625) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,0,71.706) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,0,47.8125) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,0,23.919) }
+}
+
+//* c3()
+proc c3 () { local sz,j,jmp,n
+  if ($2>63) { print "2nd arg must be < 63" return }
+  sz=$2 j=n=-1 jmp=int(63/sz)
+  $o1.colormap(sz)
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,10.6335,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,21.2415,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,31.875,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,42.5085,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,53.1165,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,63.75,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,74.3835,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,84.9915,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,95.625,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,106.258,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,116.867,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,127.5,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,138.133,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,148.742,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,159.375,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,170.008,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,180.617,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,191.25,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,201.883,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,212.492,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,223.125,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,233.758,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,244.367,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,10.6335,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,21.2415,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,31.875,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,42.5085,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,53.1165,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,63.75,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,74.3835,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,84.9915,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,95.625,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,106.258,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,116.867,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,127.5,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,138.133,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,148.742,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,159.375,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,170.008,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,180.617,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,191.25,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,201.883,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,212.492,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,223.125,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,233.758,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,244.367,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,255,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,255,15.9375) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,255,31.875) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,255,47.8125) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,255,63.75) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,255,79.6875) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,255,95.625) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,255,111.562) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,255,127.5) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,255,143.438) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,255,159.375) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,255,175.312) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,255,191.25) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,255,207.188) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,255,223.125) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,255,239.062) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,255,255) }
+}
+
+//* c4()
+proc c4 () { local sz,j,jmp,n
+  if ($2>63) { print "2nd arg must be < 63" return }
+  sz=$2 j=n=-1 jmp=int(63/sz)
+  $o1.colormap(sz)
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,30.0645,0,0) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,49.9545,26.2395,26.2395) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,63.9285,37.1025,37.1025) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,75.3525,45.441,45.441) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,85.2465,52.4535,52.4535) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,94.1205,58.65,58.65) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,102.23,64.26,64.26) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,109.727,69.411,69.411) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,116.764,74.205,74.205) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,123.394,78.693,78.693) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,129.667,82.9515,82.9515) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,135.66,87.006,87.006) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,141.423,90.8565,90.8565) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,146.931,94.5795,94.5795) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,152.26,98.1495,98.1495) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,157.386,101.592,101.592) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,162.359,104.932,104.932) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,167.203,108.145,108.145) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,171.895,111.282,111.282) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,176.46,114.342,114.342) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,180.897,117.3,117.3) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,185.258,120.207,120.207) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,189.49,123.037,123.037) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,193.647,125.791,125.791) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,195.432,131.962,128.52) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,197.166,137.879,131.147) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,198.9,143.514,133.748) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,200.634,148.971,136.297) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,202.343,154.224,138.797) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,204.026,159.299,141.27) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,205.708,164.22,143.667) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,207.392,168.988,146.038) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,209.023,173.629,148.385) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,210.681,178.143,150.679) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,212.287,182.554,152.949) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,213.919,186.864,155.193) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,215.526,191.071,157.386) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,217.107,195.202,159.554) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,218.688,199.232,161.696) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,220.244,203.184,163.812) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,221.799,207.06,165.903) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,223.355,210.885,167.968) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,224.885,214.608,170.008) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,226.415,218.28,172.023) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,227.919,221.901,174.012) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,229.424,225.471,175.976) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,230.928,228.965,177.913) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,232.407,232.407,179.826) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,233.886,233.886,185.436) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,235.365,235.365,190.868) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,236.819,236.819,196.146) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,238.272,238.272,201.272) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,239.7,239.7,206.295) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,241.128,241.128,211.191) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,242.556,242.556,215.959) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,243.958,243.958,220.651) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,245.387,245.387,225.216) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,246.763,246.763,229.704) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,248.166,248.166,234.115) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,249.543,249.543,238.451) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,250.92,250.92,242.684) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,252.297,252.297,246.865) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,253.649,253.649,250.971) }
+  if ((j+=1)%jmp==0) {n+=1 $o1.colormap(n,255,255,255) }
+}
