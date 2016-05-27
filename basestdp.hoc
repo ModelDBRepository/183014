@@ -1,0 +1,631 @@
+// $Id: basestdp.hoc,v 1.100 2012/07/19 15:16:49 samn Exp $
+
+//* params/variables
+
+declare("TargRate",8) // target peak location
+declare("syl","o[2]") // list of sywvs
+declare("taul",new List(),"incl",new List(),"maxwl",new List(),"wgl",new List())
+declare("nqrat","o[1]","lnqp",new List(),"mynqp","o[1]")
+declare("ltab","o[1]","contab","o[1]","wtab","o[2]","mtab","o[1]","dvtab","o[1]")
+declare("witer",0,"updinc",2e3,"uprob",0.1)
+declare("EEinc",0.01,"EIinc",0.01,"IEinc",0.01,"IIinc",0.01,"skipI",0)
+declare("vrecw",new Vector(),"nqrec","o[1]")
+declare("MODW",0,"MINW",1,"MODINC",0,"MININC",0.01)
+declare("SPECTY",0,"drawsm",1,"smhz",1) // whether to draw smoothed spectra in mkdrawspec
+declare("dosend",0,"fith","o[2]")
+declare("nqplast","o[1]") // stores weights
+
+declare("ESESPlast",0) // whether to have plasticity between ES -> ES cells
+declare("ESISPlast",0) // whether to have plasticity between ES -> IS cells
+declare("ESEMPlast",1) // whether to have plasticity between ES -> EM cells
+declare("EMEMPlast",0) // whether to have plasticity between EM -> EM cells
+declare("EMIMPlast",0) // whether to have plasticity between EM -> IM cells
+declare("EMESPlast",0) // whether to have plasticity between EM -> ES cells
+
+declare("ESIMPlast",0) // whether to have plasticity between ES -> IM cells
+declare("EMISPlast",0) // whether to have plasticity between EM -> IS cells
+
+declare("ISISPlast",0) // whether to have plasticity between IS -> IS cells 
+declare("ISESPlast",0) // whether to have plasticity between IS -> ES cells 
+declare("IMIMPlast",0) // whether to have plasticity between IM -> IM cells 
+declare("IMEMPlast",0) // whether to have plasticity between IM -> EM cells 
+
+declare("plastEEinc",0.25,"plastEIinc",0.25,"plastEEmaxw",6,"plastEImaxw",2.5)
+declare("plastIEinc",0.25,"plastIIinc",0.25,"plastIEmaxw",3,"plastIImaxw",3)
+declare("nqplast","o[1]") // stores weights
+sprint(tstr,"d[%d][%d]",CTYPi,CTYPi)
+declare("dplastinc",tstr,"dplasttau",tstr,"dplastmaxw",tstr) // params for plasticity
+
+ESTDP_INTF6 = ISTDP_INTF6 = 0
+resetplast_INTF6 = 0
+DOPE_INTF6=1 // dopamine learning
+EDOPE_INTF6 = IDOPE_INTF6 = 1
+FORWELIGTR_INTF6 = 1  // activate forward eligibility traces (post after pre)?
+BACKELIGTR_INTF6 = 0  // activate backward eligibilty traces (pre after post)?
+EXPELIGTR_INTF6 = 0   // use an exponential decay for the eligibility traces?
+//maxeligtrdur_INTF6 = 100 // maximum eligibilty trace duration (in ms)
+// maxplastt_INTF6 = 10 // max time interval over which to consider plasticiy
+
+//* setplast([keepwg]) - sets up plasticity params for all synapses - using
+// ESESPlast , etc. global variables. if keepwg is specified, setplast keeps
+// the current weight gains. otherwise, it sets weight gains to 1. default is
+// for keepwg==0.
+proc setplast () { local c,i,j,ty2,xiinc,xeinc,ximaxw,xemaxw,fc,gn,l1,l2,keepwg,a\
+                  localobj xo,vwg,vtau,vinc,vmaxw,vidx
+  a=allocvecs(vwg,vtau,vinc,vmaxw,vidx) fc=2
+  if(numarg()>0) keepwg=$1 else keepwg=0
+  for c=0,numcols-1 {
+    for i=0,CTYPi-1 if(col[c].numc[i]) {
+      if(IsTHAL(i)) gn=0
+      l1=int(layer(i))
+      if(ice(i)) {
+        xiinc = plastIIinc 
+        xeinc = plastIEinc 
+        ximaxw = plastIImaxw
+        xemaxw = plastIEmaxw
+      } else {
+        xiinc = plastEIinc 
+        xeinc = plastEEinc 
+        ximaxw = plastEImaxw
+        xemaxw = plastEEmaxw
+      }
+      for j=0,CTYPi-1 if(col[c].div[i][j]) {
+        if(IsTHAL(i) || IsTHAL(j) || c==0) gn=0 else gn=1
+        l2=int(layer(j))
+        gn=0
+        if(ESESPlast && i==ES && j==ES) gn=1 // if have plasticity from EM -> IM
+        if(ESISPlast && i==ES && (j==IS || j==ISL)) gn=1 // if have plasticity from EM -> IM
+        if(ESEMPlast && i==ES && j==EM) gn=1 // feedforward plasticity from ES -> EM
+        if(EMEMPlast && i==EM && j==EM) gn=1 // if have plasticity from EM -> EM
+        if(EMIMPlast && i==EM && (j==IM || j==IML)) gn=1 // if have plasticity from EM -> IM
+        if(EMESPlast && i==EM && j==ES) gn=1 // if have plasticity from EM -> ES
+
+        if(ESIMPlast && i==ES && (j==IM || j==IML)) gn=1 // if have plasticity from ES -> IM
+        if(EMISPlast && i==EM && (j==IS || j==ISL)) gn=1 // if have plasticity from EM -> IS
+
+        if(ISISPlast && i==IS && j==IS) gn=1
+        if(ISESPlast && i==IS && j==ES) gn=1
+        if(IMIMPlast && i==IM && j==IM) gn=1
+        if(IMEMPlast && i==IM && j==EM) gn=1
+
+        if(ice(j)) {
+          dplastinc[i][j] = xiinc * gn
+          dplasttau[i][j] = 10 * fc
+          dplastmaxw[i][j] = ximaxw 
+        } else {
+          dplastinc[i][j] = xeinc * gn
+          dplasttau[i][j] = 10 * fc
+          dplastmaxw[i][j] = xemaxw 
+        }
+      }
+    }
+    for ltr(xo,col[c].ce) {
+      xo.getdvi(vidx)
+      vrsz(vidx.size,vwg,vtau,vinc,vmaxw)
+      if(keepwg) xo.getplast(vwg,vtau,vinc,vmaxw) else vwg.fill(1)
+      for i=0,vidx.size-1 {
+        ty2 = col[c].ce.o(vidx.x(i)).type
+        vtau.x(i) = dplasttau[xo.type][ty2]
+        vinc.x(i) = dplastinc[xo.type][ty2]
+        vmaxw.x(i) = dplastmaxw[xo.type][ty2]
+      }
+      if(0) print ice(xo.type),vtau.min,vtau.max,vinc.min,vinc.max,vmaxw.min,vmaxw.max
+      xo.setplast(vwg,vtau,vinc,vmaxw)
+    }  
+  }
+  dealloc(a)
+}
+
+//* getplastnq(col) - make an NQS with plasticity info, so can load later
+obfunc getplastnq () { local c,i,a localobj nq,col,xo,vwg,vtau,vinc,vmaxw
+  a=allocvecs(vwg,vtau,vinc,vmaxw) col=$o1 c=col.id
+  nq=new NQS("col","id","gid","vwg","vtau","vinc","vmaxw")
+  {nq.odec("vwg") nq.odec("vtau") nq.odec("vinc") nq.odec("vmaxw")}
+  for ltr(xo,col.ce) {
+    vrsz(xo.getdvi,vwg,vtau,vinc,vmaxw)
+    xo.getplast(vwg,vtau,vinc,vmaxw)
+    nq.append(c,xo.id,xo.gid,vwg,vtau,vinc,vmaxw)
+  }
+  dealloc(a)
+  return nq
+}
+
+//* setplastnq(nq,col) - load plasticity weights,info into col INTF6 cells
+// should set resetplast_INTF6 to 0 if using this function
+func setplastnq () { local i localobj nq,col,xo,vwg,vtau,vinc,vmaxw
+  nq=$o1 col=$o2
+  for ltr(xo,col.ce) {
+    if(nq.select(-1,"gid",xo.gid)!=1) {
+      print "can't find gid " , xo.gid , " in nqs!"
+      return 0
+    }
+    vwg=nq.get("vwg",nq.ind.x(0)).o
+    vtau=nq.get("vtau",nq.ind.x(0)).o
+    vinc=nq.get("vinc",nq.ind.x(0)).o
+    vmaxw=nq.get("vmaxw",nq.ind.x(0)).o
+    if((i=xo.getdvi)!=vwg.size) {
+      print "wrong size ", i, " != " , vwg.size
+      return 0
+    }
+    xo.setplast(vwg,vtau,vinc,vmaxw)
+  }
+  return 1
+}
+
+//* plastoff(col)
+proc plastoff () { local i,j,ty2,a localobj xo,vwg,vtau,vinc,vmaxw,vidx,col
+  a=allocvecs(vwg,vtau,vinc,vmaxw,vidx) col=$o1
+  for ltr(xo,col.ce) {
+    xo.getdvi(vidx)
+    vrsz(vidx.size,vwg,vtau,vinc,vmaxw)
+    vwg.fill(1)
+    for i=0,vidx.size-1 {
+      ty2 = col.ce.o(vidx.x(i)).type
+      vtau.x(i) = dplasttau[xo.type][ty2]
+      vinc.x(i) = 0 
+      vmaxw.x(i) = dplastmaxw[xo.type][ty2]
+    }
+    xo.setplast(vwg,vtau,vinc,vmaxw)
+  }  
+  dealloc(a) 
+}
+
+//* updateplast(col)
+proc updateplast () { local i,j,a localobj col,xo,vwg,vtau,vinc,vmaxw,vidx
+  a=allocvecs(vwg,vtau,vinc,vmaxw,vidx) col=$o1
+  for ltr(xo,col.ce) {
+    xo.getdvi(vidx)
+    vrsz(vidx.size,vwg,vtau,vinc,vmaxw)
+    xo.getplast(vwg,vtau,vinc,vmaxw)
+    for vtr(&i,vidx,&j) if(vmaxw.x(j)) {
+      if(ice(col.ce.o(i))) {
+        vmaxw.x(j) = plastEImaxw
+        vinc.x(j) = plastEIinc
+      } else {
+        vmaxw.x(j) = plastEEmaxw
+        vinc.x(j) = plastEEinc
+      }
+    }
+    xo.setplast(vwg,vtau,vinc,vmaxw)
+  }
+  dealloc(a)
+}
+
+//* getavgplastnq(nqp,nqw,col) - gets nqs for use in setplastnq. weight gains are average between populations in nq.
+// nqp is a NQS object from getplastnq. nqw is from mkwgnq. returned nqs is to be used as a control. 
+obfunc getavgplastnq () { local i,j,ty1,a localobj nqp,nqw,nqo,mwg,xo,vwg,vidx,col
+  a=allocvecs(vwg,vidx)
+  nqp=$o1 nqw=$o2 col=$o3
+  {nqo=new NQS() nqp.tog("DB") nqo.cp(nqp)}
+  mwg=new Matrix(CTYPi+1,CTYPi+1) // matrix for storing avg weight gains btwn types
+  nqw.verbose=0
+  for i=0,CTYPi-1 for j=0,CTYPi-1 if(col.div[i][j] && nqw.select("ty1",i,"ty2",j)) {
+    mwg.x(i,j)=nqw.getcol("wg").mean() // store avg weight gain btwn types in mwg
+  }
+  {nqw.verbose=1 nqw.tog("DB")}
+  for i=0,nqp.v.size-1 { // go thru each row (each row corresponds to a single cell's outputs)
+    xo = col.ce.o(nqp.getcol("id").x(i))
+    ty1 = xo.type
+    vwg.resize(0)
+    vwg.copy(nqp.get("vwg",i).o) // weight gain vectors for that cell
+    xo.getdvi(vidx) // output IDs for that cell
+    for j=0,vidx.size-1 {
+      vwg.x(j) = mwg.x(ty1,col.ce.o(vidx.x(j)).type)
+    }
+    nqo.set("wg",i,vwg) // store the update weight gains in output nqs
+  }
+  dealloc(a)
+  return nqo
+}
+
+declare("vcheck",new Vector())
+declare("myncl",new List(),"myspkl",new List(),"myspktyl",new List(),"vice",new Vector(col.allcells))
+
+//* declares
+
+declare("wgnq","o[9]")
+declare("nqp","o[9][10]","nqps","o[9][10]","nqchg","o[9]","nqchgs","o[9]")
+declare("Ts","d[10]","Te","d[10]")
+
+//* mk4specs(start1,end1,start2,end2,start3,end3,start4,end4,celltype[,norm,sm])  - makes pmtm spectra for 
+// the 4 periods of the sim: baseline, zip on, zip on + learning, zip on + recall
+proc mk4specs () { local i,ct,k,nrm,sampr,sm,smHZ,a localobj vec
+  a=allocvecs(vec)
+  {Ts[0]=$1*1e3 Te[0]=$2*1e3}
+  {Ts[1]=$3*1e3 Te[1]=$4*1e3}
+  {Ts[2]=$5*1e3 Te[2]=$6*1e3}
+  {Ts[3]=$7*1e3 Te[3]=$8*1e3}
+  ct=$9
+  if(numarg()>9) nrm=$10 else nrm=0
+  if(numarg()>10) smHZ=$11 else smHZ=smhz
+  sampr=1e3/binsz
+  if(ct<0) sampr=200
+  for i=0,3 if(Te[i] > Ts[i]) {
+    if(myv[i]==nil) myv[i]=new Vector() else myv[i].resize(0)
+    if(ct==-1) {
+      {myv[i].copy(nqLFP.v,Ts[i]/vdt_INTF6,Te[i]/vdt_INTF6-1)}
+      vec.resize(myv[i].size/(1e3/vdt_INTF6/sampr))
+      myv[i].downsampavg(vec,(1e3/vdt_INTF6/sampr)) // downsample to 200 Hz
+      myv[i].resize(0)
+      myv[i].copy(vec)
+      myv[i].sub(myv[i].mean)
+    } else {
+      {myv[i].copy(nqCTY[CDX].v[ct],Ts[i]/binsz,Te[i]/binsz-1) myv[i].sub(myv[i].mean)}
+    }
+    {nqsdel(nqp[CDX][i]) nqp[CDX][i]=getspecnq(myv[i],sampr,SPECTY)}
+    sm=0
+    while(nqp[CDX][i].v.x(sm) < smHZ) sm += 1
+    //print nqp[CDX][i].v.x(sm),smHZ,sm
+    {nqsdel(nqps[CDX][i]) nqps[CDX][i]=new NQS()}
+    {nqps[CDX][i].cp(nqp[CDX][i]) boxfilt(nqps[CDX][i].v[1],sm)}
+    if(g!=nil) {
+      if(nrm) nqps[CDX][i].v[1].div(nqps[CDX][i].v[1].sum)
+      if(ct>=0) {
+        print CTYP.o(ct).s,i,nqp[CDX][i].v.x(nqp[CDX][i].v[1].max_ind),nqp[CDX][i].v[1].max
+      } else print "LFP",i,nqp[CDX][i].v.x(nqp[CDX][i].v[1].max_ind),nqp[CDX][i].v[1].max
+    }
+  }
+  dealloc(a)
+}
+
+//* dr4spec(celltype) 
+proc dr4spec () {
+  initg()
+  mk4specs(1,BaseDur,\
+           BaseDur+1,BaseDur+ZipDur-1,\
+           BaseDur+ZipDur+1,BaseDur+ZipDur+LearnDur-1,\
+           BaseDur+ZipDur+LearnDur+1,2*BaseDur+ZipDur+LearnDur-1,$1)
+  for i=0,3 if(g!=nil) {
+    if(drawsm) {
+      if(nqps[CDX][i]==nil) continue
+      nqps[CDX][i].gr("pow","f",0,i+1,1)
+    } else {
+      if(nqp[CDX][i]==nil) continue
+      nqp[CDX][i].gr("pow","f",0,i+1,1)
+    }
+  }
+  fing()
+}
+
+//* dr4chg(celltype)
+proc dr4chg () { local i,p1,p2
+  initg()
+  if(numarg()<=1) {
+    mk4specs(1,BaseDur,\
+             BaseDur+1,BaseDur+ZipDur-1,\
+             BaseDur+ZipDur+1,BaseDur+ZipDur+LearnDur-1,\
+             BaseDur+ZipDur+LearnDur+1,2*BaseDur+ZipDur+LearnDur-1,$1)
+  }
+  {nqsdel(nqchg[CDX]) nqchg[CDX]=new NQS("f","pow")  }
+  nqp[CDX][0].verbose=nqp[CDX][2].verbose=0
+  for i=0,int(nqp[CDX][0].v.max)-1 {
+    if(!nqp[CDX][0].select("f","[]",i,i+1)) continue
+    if(!nqp[CDX][2].select("f","[]",i,i+1)) continue
+    p2 = nqp[CDX][2].getcol("pow").sum
+    p1 = nqp[CDX][0].getcol("pow").sum
+    if(p1>0) nqchg[CDX].append((i+1)/2.0,(p2-p1)/p1) else  nqchg[CDX].append((i+1)/2.0,0)
+  }
+  if(g!=nil) nqchg[CDX].gr("pow","f",0,1,1)
+  fing()
+  nqp[CDX][0].verbose=nqp[CDX][2].verbose=1
+}
+
+//* getratety(start,end,ty)
+func getratety () { local startt,endt,ty,ns,r
+  startt=$1 endt=$2 ty=$3
+  if(endt-startt<=0) return 0
+  if(snq[CDX]==nil) snq[CDX]=SpikeNQS(vit[CDX].tvec,vit[CDX].vec,col[CDX])
+  ns=snq[CDX].select("type",ty,"t","[]",startt,endt)
+  r = 1e3 * ns / (col[CDX].numc[ty] * (endt-startt) )
+  return r
+}
+
+//* pravgrates2 (start1,end1,start2,end2,start3,end3,start4,end4) 
+proc pravgrates2 () { local i,ct,r localobj s
+  {Ts[0]=$1*1e3 Te[0]=$2*1e3}
+  {Ts[1]=$3*1e3 Te[1]=$4*1e3}
+  {Ts[2]=$5*1e3 Te[2]=$6*1e3}
+  {Ts[3]=$7*1e3 Te[3]=$8*1e3}
+  s=new String2()
+  for col.ctt(&ct) {
+    sprint(s.s,"%s:\t",CTYP.o(ct).s)
+    for i=0,3 {
+      r = getratety(Ts[i],Te[i],ct)
+      sprint(s.t,"%0.2f\t",r)
+      strcat(s.s,s.t)
+    }
+    print s.s
+  }
+}
+
+//* savenqspec - saves nqp,nqps spectra, uses strv
+proc savenqspec () { local i,st,et,ct localobj str
+  str=new String() 
+  st=plaststartT_INTF6/1e3
+  et=plastendT_INTF6/1e3
+  for case(&ct,ES,IS,EM,IM,CTYPi,CTYPi+1) {
+    if(g!=nil) {
+      g.erase
+      gvmarkflag=0 
+    }
+    mkdrawspec(0,TrainStart/1e3,TrainStart/1e3,LearnDur+TrainStart/1e3,LearnDur+TrainStart/1e3,tstop/1e3,ct)
+    for i=0,2 {    
+      {sprint(str.s,"./data/%s_%s_nqp_%d.nqs",strv,CTYP.o(ct).s,i) nqp[0][i].sv(str.s)}
+      {sprint(str.s,"./data/%s_%s_nqps_%d.nqs",strv,CTYP.o(ct).s,i) nqps[0][i].sv(str.s)}
+    }
+  }
+}
+
+//* ldnqspec - saves nqp,nqps spectra, uses strv
+obfunc ldnqspec () { local i,st,et,ct localobj str,nqo,nq,nqs
+  {str=new String() nqo=new NQS("str","nq")  nqo.odec("nq") nqo.strdec("str")}
+  for case(&ct,ES,IS,EM,IM,CTYPi,CTYPi+1) {
+    for i=0,3 {    
+      {sprint(str.s,"./data/%s_%s_nqp_%d.nqs",strv,CTYP.o(ct).s,i) nq=new NQS(str.s)}
+      nqo.append(str.s,nq)
+      nqsdel(nq)
+      {sprint(str.s,"./data/%s_%s_nqps_%d.nqs",strv,CTYP.o(ct).s,i) nqs=new NQS(str.s)}
+      nqo.append(str.s,nqs)
+      nqsdel(nqs)      
+    }
+  }
+  return nqo
+}
+
+//* myrd(simstr[,rdr]) - read output from data saved with mysv
+proc myrd () { local rdr localobj s
+  s=new String() if(numarg()>1) rdr=$2 else rdr=0
+  {nqsdel(snq) sprint(s.s,"/u/samn/intfstdp/data/%s_snq.nqs",$s1) snq=new NQS(s.s) snq2vit(snq,vit)}
+  if(rdr){
+    {nqsdel(nqrat) sprint(s.s,"/u/samn/intfstdp/data/%s_nqrat.nqs",$s1) nqrat=new NQS(s.s)}
+    {nqsdel(mynqp) sprint(s.s,"/u/samn/intfstdp/data/%s_mynqp.nqs",$s1) mynqp=new NQS(s.s)}
+  }
+  {nqsdel(wgnq) sprint(s.s,"/u/samn/intfstdp/data/%s_wgnq.nqs",$s1) wgnq=new NQS(s.s)}
+}
+
+//* settunerc - setup recording of spikes used in tuning
+proc settunerec () { local i localobj xo,nc
+  for i=0,CTYPi-1 myspktyl.append(new Vector())
+  for ltr(xo,col.ce,&i) {
+    xo.flag("out",1) // make sure NetCon events enabled from this cell
+    myncl.append(nc=new NetCon(xo,nil))
+    myspkl.append(new Vector())
+    nc.record(myspkl.o(i)) // record each cell separately
+    vice.x(i)=ice(xo.type)
+  }
+}
+
+//* mksyl - setup lists of weight vectors
+proc mksyl () { local i,dvt localobj vw1,vw2
+  for i=0,1 syl[i]=new List()
+  for i=0,col.allcells-1 {
+    dvt=col.ce.o(i).getdvi()
+    vw1=new Vector(dvt)
+    vw2=new Vector(dvt)
+    col.ce.o(i).getsywv(vw1,vw2)
+    syl[0].append(vw1)
+    syl[1].append(vw2)
+  }
+}
+//* mkstdpl - 
+proc mkstdpl () { local i,dv localobj vtau,vinc,vmaxw,vwg,xo
+  for ltr(xo,col.ce,&i) {
+    dv=xo.getdvi
+    vtau=new Vector(dv)
+    vinc=new Vector(dv)
+    vmaxw=new Vector(dv)
+    vwg=new Vector(dv)
+    if(!ice(xo.type)) { // only STDP from E->X cells
+      xo.getplast(vwg,vtau,vinc,vmaxw)
+      vcheck.append(i)
+    }
+    taul.append(vtau)
+    incl.append(vinc)
+    maxwl.append(vmaxw)
+    wgl.append(vwg)
+  }
+}
+//* mkdvtab - make table with dvi
+proc mkdvtab () { local i localobj col,xo
+  col=$o1
+  dvtab=new List()
+  for ltr(xo,col.ce,&i) {
+    dvtab.append(new Vector(xo.getdvi))
+    xo.getdvi(dvtab.o(dvtab.count-1))
+  }  
+}
+
+//* conn2tab - make lookup tables with connectivity info
+obfunc conn2tab () { local i,j,k,id1,id2 localobj ltab,col,nqc,contab,wtab1,wtab2,mtab,vc
+  col=$o1 ltab=new List() vc=new Vector(col.allcells)
+  for i=0,3 ltab.append(new Matrix(col.allcells,col.allcells))
+  {contab=ltab.o(0) wtab1=ltab.o(1) wtab2=ltab.o(2) mtab=ltab.o(3)}
+  if(col.connsnq==nil) {
+    print "conn2tab ERR: col.connsnq is nil"
+    return nil
+  }
+  nqc=col.connsnq
+  nqc.sort("del") // make sure order in NQS corresponds to getdvi order
+  for i=0,nqc.v.size-1 {
+    id1=nqc.v[0].x(i) // from id1
+    id2=nqc.v[1].x(i) // to id2
+    contab.x(id1,id2)=1 // is there a connection?
+    wtab1.x(id1,id2)=nqc.v[4].x(i) // weight 1
+    wtab2.x(id1,id2)=nqc.v[5].x(i) // weight 2
+    mtab.x(id1,id2) = vc.x(id1) // index into div vector -- assumes order in connsnq according to div
+    vc.x(id1) += 1
+  } 
+  return ltab
+}
+
+//* updateSTDP - update the STDP params
+proc updateSTDP () { local i,j,k,md,df,fctr,inc,inc0,idx,trg,ety,cidx,pkx,pky,pkd,a,poid,pkdr\
+                    localobj xo,vs,ce,nqp,vec,tvec,vh,vwg,vtau,vinc,vmaxw
+  print "t:", t, ", witer:",witer
+  a=allocvecs(vec,tvec,vh,vwg,vtau,vinc,vmaxw)
+  ce=col.ce
+  for i=0,CTYPi-1 if(col.numc[i]) myspktyl.o(i).resize(0) //setup per-type counts
+  for ltr(xo,ce,&i) myspktyl.o(xo.type).append(myspkl.o(i))
+  vrsz(0,vec,tvec)
+  for case(&i,ES,EM,&j) tvec.append(myspktyl.o(i))
+  vh = tvec.histogram(witer*updinc,(witer+1)*updinc,binsz)
+  vh.sub(vh.mean)  
+  lnqp.append(nqp=getspecnq(vh,1e3/binsz,SPECTY)) // get spectrum from E MUA
+  pkx = nqp.v.x(nqp.v[1].max_ind)
+  pky = nqp.v[1].max
+  pkd = TargRate - pkx // difference in peak frequency, + = too slow, - = too fast
+  pkdr = abs(pkd) / TargRate
+  print pkx, pky, pkd, pkdr
+  if(MODINC || MODW) {
+    if(t >= plaststartT_INTF6 && t <= plastendT_INTF6) for vtr(&i,vcheck) if(myspkl.o(i).size) { xo = ce.o(i)    
+      vrsz(xo.getdvi,vwg,vtau,vinc,vmaxw)
+      xo.getplast(vwg,vtau,vinc,vmaxw) // get current weight gains    
+      for vtr(&j,dvtab.o(i),&k) {
+        inc = 0
+        if(vice.x(i)) { // presynaptic I cell
+          if(ISTDP_INTF6) {
+            if(vice.x(j)) { // postsynaptic I cell
+              if(skipI) continue
+              if(pkd > 0) inc = IIinc else if(pkd < 0) inc = -IIinc
+            } else { // postsynaptic E cell
+              if(pkd > 0) inc = IEinc else if(pkd < 0) inc = -IEinc
+            }
+          }
+        } else { // presynaptic E cell
+          if(ESTDP_INTF6) {
+            if(vice.x(j)) { // postsynaptic I cell
+              if(skipI) continue
+              if(pkd > 0) inc = EIinc else if(pkd < 0) inc = -EIinc
+            } else { // postsynaptic E cell
+              if(pkd > 0) inc = -EEinc else if(pkd < 0) inc = EEinc
+            }
+          }
+        }
+        if(MODINC) vinc.x(k) = MAXxy(MININC,vinc.x(k) + inc*pkdr)
+        if(MODW) vmaxw.x(k) = MAXxy(MINW,vmaxw.x(k) + inc*pkdr)
+      }
+      xo.setplast(vwg,vtau,vinc,vmaxw) // reset plasticity params    
+    }
+  }
+  for vtr(&i,vrecw) {
+    for j=0,col.allcells-1 if(contab.x(i,j)) {
+//      idx = mtab.x(i,j)
+//      nqrec.append(i,j,ce.o(i).type,ce.o(j).type,syl[0].o(i).x(idx),syl[1].o(i).x(idx),witer)
+    }
+  }
+  witer += 1
+  for i=0,myspkl.count-1 myspkl.o(i).resize(0) // reset spike counts for cells to 0
+  for(i=CTYPi-1;i>=0;i-=1) if(col.numc[i]) {
+    j=1e3*myspktyl.o(i).size/(col.numc[i]*updinc)
+    print CTYP.o(i).s, " " , j , " avg Hz "
+    nqrat.append(t,witer,i,j,pkx,pky)
+    myspktyl.o(i).resize(0) // reset spike counts for types to 0
+  }
+  dealloc(a)
+  cvode.event(t+updinc,"updateSTDP()") // set next update weights event
+}
+
+//* mysend - starts off the update q
+proc mysend () { local sz localobj xo
+  for ltr(xo,lnqp) nqsdel(xo)
+  lnqp.remove_all()
+  sz = (LearnDur/(updinc/1e3))
+  {nqsdel(nqrat) nqrat=new NQS("t","witer","ty","rate","pkx","pky") nqrat.clear(sz)}
+  {nqsdel(nqrec) nqrec=new NQS("id1","id2","ty1","ty2","witer","wgain","inc","maxw")}
+  cvode.event(updinc,"updateSTDP()") 
+}
+
+//* prnqrat(nqrat) - print average peak rates in 20 iters
+proc prnqrat () { local sdx localobj nqrat
+  nqrat=$o1
+  sdx=0
+  nqrat.verbose=0
+  while(sdx<witer) {
+    nqrat.select("witer","[]",sdx,sdx+20,"ty",E5R)
+    print nqrat.getcol("pkx").mean,"+/-",nqrat.getcol("pkx").stderr
+    sdx += 20
+  }
+  nqrat.verbose=1
+}
+
+//* drtargrate(nqrat) -
+proc drtargrate () { localobj nqrat
+  nqrat=$o1
+  nqrat.tog("DB")
+  nqrat.select("ty",E5R)
+  {gvmarkflag=0 nqrat.gr("pkx","t",0,2,1)}
+  {gvmarkflag=1 nqrat.gr("pkx","t",0,2,3) gvmarkflag=0}
+  drline(0,TargRate,tstop,TargRate,g,3,4)
+  drline(TrainStart,0,TrainStart,100,g,9,9)
+  drline(TrainStop,0,TrainStop,100,g,9,9)
+}
+
+//* drpoprates(nqrat) - draw population rates vs iteration
+proc drpoprates () { local ct,i localobj nqrat
+  nqrat=$o1
+  nqrat.verbose=0
+  drline(0,TargRate,tstop,TargRate,g,3,4)
+  for case(&ct,ES,EM,IS,ISL,IM,IML,&i) {
+    nqrat.select("ty",ct)
+    nqrat.gr("rate","t",0,i+1,1)
+  }
+  nqrat.verbose=1
+  drline(TrainStart,0,TrainStart,100,g,9,9)
+  drline(TrainStop,0,TrainStop,100,g,9,9)
+}
+
+//* drlnqp(startidx,endidx)
+proc drlnqp () { local sidx,eidx,i
+  sidx=$1 eidx=$2
+  for i=sidx,eidx {
+    lnqp.o(i).gr("pow","f",0,(i+1)%10,1)
+  }
+}
+
+//* mynqp2lnqp(mynqp) - copy the nqp NQS objects in $o1 to a list and return it
+obfunc mynqp2lnqp () { local i localobj lnqp,mynqp,nqp
+  mynqp=$o1
+  mynqp.tog("DB")
+  lnqp=new List()
+  for i=0,mynqp.v.size-1 lnqp.append(nqp=mynqp.get("nqp",i).o)
+  return lnqp
+}
+
+//* lnq2nqs(ls) - copy the ls NQS objects to a NQS and return it
+obfunc lnq2nqs () { local i localobj lnq,nq,xo
+  lnq=$o1
+  {nq=new NQS("i","nqp") nq.odec("nqp") nq.clear(lnq.count)}
+  for ltr(xo,lnq,&i) nq.append(i,xo)
+  return nq
+}
+
+//* mkavgnqp(lnqp,startidx,endidx) - return an nqs with average +/ stderr of power at frequencies
+// lnqp is a list of nqp objects
+obfunc mkavgnqp () { local i,sidx,eidx localobj nqa,nqp,lnqp,va,ve
+  lnqp=$o1 sidx=$2 eidx=$3
+  nqa=new NQS("f","avg","err")
+  for i=sidx,eidx {
+    nqp=lnqp.o(i)
+    
+  }
+  return nqa
+}
+
+//* svimg1(basename) - saves idraw, for when screen capture not working
+proc svimg1 () {
+  {sprint(tstr,"gif/%s.id",$s1) save_idraw(tstr)}
+}
+
+//* svimg2(basename) - saves id as gif & gets rid of intermediate pdf
+proc svimg2 () {
+  {sprint(tstr,"epstopdf gif/%s.id",$s1) system(tstr)}
+  {sprint(tstr,"convert  gif/%s.pdf gif/%s.gif",$s1,$s1) system(tstr)}
+  {sprint("rm gif/%s.pdf",$s1) system(tstr)}
+  {sprint("rm gif/%s.id",$s1) system(tstr)}
+}
+
+//* calls
+
+if(seadsetting_INTF6==3) setplast() // setup plasticity params
+
+if(dosend) fith=new FInitializeHandler("mysend()")

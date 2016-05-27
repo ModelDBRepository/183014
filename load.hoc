@@ -1,0 +1,508 @@
+// $Id: load.hoc,v 1.198 2012/07/28 04:35:54 samn Exp $
+
+//* declares
+
+declare("viseed",new Vector(),"vdvseed",new Vector(),"vtarg",new Vector(),"verrty",new Vector())
+viseed.append(1234,4321,5678,8765,9132)
+vdvseed.append(534023,9876,6789,1391,91302)
+vtarg.append(2,5,6,10,11)
+
+declare("nqb","o[1]","nqw","o[1]","nqa","o[1]","nqm","o[1]")
+
+declare("nqo","o[2]","targid",0) 
+declare("derr","d[2]")
+
+declare("mysnq","o[2]")
+
+strdef dstr
+dstr="12jun14.06"
+
+sprint(tstr,"o[%d][%d]",2,CTYPi)
+declare("NQP",tstr)
+
+declare("nqi","o[1]")
+if(!strcmp(dstr,"12jun14.06")) {
+  nqi=new NQS("data/12jun23_nqb_ierr_Z1.nqs") // has sum of errors in diff trials
+} else {
+  nqi=new NQS("data/12jun30.12jun25.10_nqb_ierr_Z2.nqs")
+}
+
+{sprint(tstr,"o[%d][%d]",2,CTYPi) declare("mscore",tstr)}
+
+//** myrd
+proc myrd () { localobj s
+  {s=new String() CDX=1}
+//  {sprint(s.s,"data/%s_%s_snq.nqs",$s1,col[CDX].name) nqsdel(snq[CDX]) snq[CDX]=new NQS(s.s)}
+//  {sprint(s.s,"data/%s_%s_LFP.nqs",$s1,col[CDX].name) nqsdel(nqLFP[CDX]) nqLFP[CDX]=new NQS(s.s)}
+  {sprint(s.s,"data/%s_nqa.nqs",$s1) nqsdel(nqa) nqa=new NQS(s.s)}//nqa table
+//  {sprint(s.s,"data/%s_E5RtoE5Bavgwtgn.nqs",$s1) nqsdel(nqw) nqw=new NQS(s.s)}//avg synaptic weight changes
+}
+
+//* loadnqos(inputseed,dvseed,targid[,ndimension]) - load the nqo objects associated with a particular training/testing set
+// nqo[0] has the nqo from testing the training set, nqo[1] has the nqo from testing the naive set
+// ndimension specifies whether used 1D testing (i.e., 15 positions) or 2D testing (i.e., 15^2 positions)
+proc loadnqos () { local nd localobj s
+  s=new String()
+  inputseed=$1
+  dvseed=$2
+  setTargByID(targid = $3)
+  if(numarg()>3) nd=$4 else nd=1
+  if(verbosearm) print "set inputseed: ", inputseed, "dvseed: ", dvseed, " targid: " , targid
+  sprint(strv,"%s_inputseed_%d_dvseed_%d_targid_%d_",dstr,inputseed,dvseed,targid)
+  sprint(s.s,"data/%s_itertest%dD_A3.nqs",strv,nd)
+  {nqsdel(nqo[0]) nqo[0] = new NQS(s.s)}
+  sprint(s.s,"data/%s_itertest%dD_control_A4.nqs",strv,nd)
+  {nqsdel(nqo[1]) nqo[1] = new NQS(s.s)}
+}
+
+//* loadwts(inputseed,dvseed,targid)
+proc loadwts () { localobj str,nq
+  {inputseed=$1 dvseed=$2 setTargByID(targid = $3) str=new String()}
+  sprint(str.s,"data/%s_inputseed_%d_dvseed_%d_targid_%d___plastnq_A2.nqs",dstr,inputseed,dvseed,targid)
+  nq=new NQS(str.s)
+  setplastnq(nq,col[0]) // this loads the learned weights 
+  nqsdel(nq)
+  print "loaded weights from ", str.s
+}
+
+//* lrdwgnq(inputseed,dvseed,targid) - read and return a single wgnq
+obfunc rdwgnq () { localobj str,nq
+  {inputseed=$1 dvseed=$2 setTargByID(targid = $3) str=new String()}
+  sprint(str.s,"data/wgnq/%s_inputseed_%d_dvseed_%d_targid_%d__wgnq_ZZZ.nqs",dstr,inputseed,dvseed,targid)
+  nq=new NQS(str.s)
+  print "read weights from ", str.s
+  return nq
+}
+
+//* catwgnq - concatenate all of the wgnqs together and return
+obfunc catwgnq () { localobj nq,nqtmp
+  nq=nil
+  for vtr(&inputseed,viseed) for vtr(&dvseed,vdvseed) for vtr(&targid,vtarg) {
+    nqtmp = rdwgnq(inputseed,dvseed,targid)
+    if(nq==nil) nq=nqtmp else {
+      nq.append(nqtmp)
+      nqsdel(nqtmp)
+    }
+  }
+  return nq
+}
+
+//* loadsnq(inputseed,dvseed,targid,subiter)
+proc loadsnq () { localobj str
+  {inputseed=$1 dvseed=$2 setTargByID(targid = $3) str=new String() htmax=tstop=t=15e3 binsz=5}
+  sprint(str.s,"data/%s_inputseed_%d_dvseed_%d_targid_%d__iter_0_subiter_%d_snq_A5.nqs",dstr,inputseed,dvseed,targid,$4)
+  {nqsdel(mysnq[0]) mysnq[0]=new NQS(str.s) addmidcol(mysnq[0])}
+  sprint(str.s,"data/%s_inputseed_%d_dvseed_%d_targid_%d__iter_0_subiter_%d_snq_control_A5.nqs",dstr,inputseed,dvseed,targid,$4)
+  {nqsdel(mysnq[1]) mysnq[1]=new NQS(str.s) addmidcol(mysnq[1])}
+}
+
+//* mkpoppca(binsz) - make pop vec pca - puts them in mscore - assumes mysnq loaded via loadsnq
+proc mkpoppca () { local i,j,btmp
+  btmp=binsz binsz=$1 htmax=tstop
+  for i=0,1 {
+    {mysnq[i].select("id","<",col.ix[DP]) vit.vec.copy(mysnq[i].getcol("gid")) vit.tvec.copy(mysnq[i].getcol("t"))}
+    for case(&j,EM,ES) {
+      mscore[i][j]=poppca(j,binsz)
+    }
+  }
+  binsz=btmp
+}
+
+//* mkpmtm(celltype[,startt,endt,binsz,skipdraw])
+proc mkpmtm () { local i,j,ct,st,et,sk
+  ct=$1
+  if(numarg()>1)st=$2 else st=0
+  if(numarg()>2)et=$3 else et=15
+  if(numarg()>3)binsz=$4 else binsz=2.5
+  if(numarg()>4)sk=$5 else sk=0
+  for i=0,1 {
+    {mysnq[i].select("id","<",col.ix[DP]) vit.vec.copy(mysnq[i].getcol("gid")) vit.tvec.copy(mysnq[i].getcol("t"))}
+    {mysnq[i].select("id",">=",col.ix[DP]) vitdp.vec.copy(mysnq[i].getcol("gid")) vitdp.tvec.copy(mysnq[i].getcol("t"))}
+    {htmax=tstop=15e3 initAllMyNQs()}
+    if(NQP[i][ct]!=nil) for j=0,1 nqsdel(NQP[i][ct].o(j))
+    NQP[i][ct]=mkonespec(st,et,ct)
+    if(!sk) NQP[i][ct].o(0).gr("pow","f",0,i+1,1)
+  }
+}
+
+//* drrast(index : 0==trained, 1==control)
+proc drrast () {
+  if(snq==nil) snq=new NQS()
+  snq.cp(mysnq[$1])
+  dritn()
+}
+
+//** load raster/lfp/nqa/nqw data from one sim from the batch
+proc myloadone () { local row
+// if(numarg()==1) {EEmaxw=nqb.v[1].x($1)
+//   E5BRecur=nqb.v[2].x($1)
+//   E5RRecur=nqb.v[3].x($1)
+// } else {EEmaxw=$1 E5BRecur=$2 E5RRecur=$3}
+// if(!nqb.select(-1,"EEmaxw",EEmaxw,"E5B",E5BRecur,"E5R",E5RRecur)) {
+//   print "couldn't find: EEmaxw=",EEmaxw," E5BRecur=",E5BRecur," E5RRecur=",E5RRecur
+//   return
+// }
+// row=nqb.ind.x(0)
+// strv=nqb.get("strv",row).s
+// print "loading " , strv
+// myrd(strv)
+}
+
+//* loadnqm - setup meta-data for multtargtrain
+proc loadnqm () { local i,j,b,r,d,tt localobj s,nqc,nqa,strv,nqaC
+  s=new String2() strv=new String()
+  {nqsdel(nqm) nqm=new NQS("strv","inputseed","dvseed","nqc","nqa","nqaC")}
+  {nqm.strdec("strv")  nqm.odec("nqc") nqm.odec("nqa") nqm.odec("nqaC")}
+  for vtr(&i,viseed) for vtr(&d,vdvseed)  {
+    sprint(strv.s,"12jun14.06_inputseed_%d_dvseed_%d_multtarg_",i,d)
+    sprint(s.t,"data/%s__multtarg_nqs_B2.nqs",strv.s)
+    if(!FileExists(s.t)) {
+      print "SKIPPING: didn't run " , strv.s
+      continue
+    }
+    nqc=new NQS(s.t)
+    {sprint(s.t,"data/%s_MultTargTest1D_B3.nqs",strv.s) nqa=new NQS(s.t)}
+    {sprint(s.t,"data/%s_MultTargTest1D_control_B4.nqs",strv.s) nqaC=new NQS(s.t)}
+    nqm.append(strv.s,i,d,nqc,nqa,nqaC)
+    {nqsdel(nqc) nqsdel(nqa) nqsdel(nqaC)}
+  }
+}
+
+//* loadnqb - setup meta-data
+proc loadnqb () { local i,j,b,r,d,tt localobj s
+  s=new String2()
+  nqb=new NQS("strv","inputseed","dvseed","targid")
+  nqb.strdec("strv") // {nqb.odec("snq") nqb.odec("nqa") nqb.odec("nqw")}
+  for vtr(&i,viseed) for vtr(&d,vdvseed) for vtr(&tt,vtarg) {
+    sprint(strv,"%s_inputseed_%d_dvseed_%d_targid_%d_",dstr,i,d,tt)
+    sprint(s.s,"data/%s_itertest1D_A3.nqs",strv)
+    if(!FileExists(s.s)) {
+      print "SKIPPING: didn't run " , strv
+      continue
+    }
+    nqb.append(strv,i,d,tt)
+  }
+}
+
+//* nqa, nqw outside of nqb for easier viewing
+// objref mynqa[nqb.v.size],mynqw[nqb.v.size]
+// proc mkmynqs () { local i
+// for i=0,nqb.v.size-1 {
+//   myloadone(i)
+//   {mynqa[i]=new NQS() mynqa[i].cp(nqa)}
+//   {mynqw[i]=new NQS() mynqw[i].cp(nqw)}
+// }
+// }
+
+//* drtrj - draws the two angles vs time from the two nqos
+proc drtrj () { local i
+  {g.erase i=$1 if(nqa==nil)nqa=new NQS()}
+  {nqo[0].select("subiter",i) nqa.cp(nqo[0].out) drelbowtrajectory(1) drshouldertrajectory(1)}
+  {nqo[1].select("subiter",i) nqa.cp(nqo[1].out) drelbowtrajectory(5) drshouldertrajectory(5)}
+  g.exec_menu("View = plot")
+}
+
+//* drxy - draws the x,y position from the two nqos
+proc drxy () { local i,xt,yt,ln
+  {gvmarkflag=0 g.erase i=$1 if(nqa==nil)nqa=new NQS()}
+  {nqo[0].select("subiter",i) nqa.cp(nqo[0].out)}
+  sAng[0] = nqa.getcol("sAng0").x(0)
+  sAng[1] = nqa.getcol("sAng1").x(0)
+  xt=tPos.x yt=tPos.y
+  {rotArmTo(sAng[0],sAng[1]) tPos.x=armPos.x tPos.y=armPos.y drtarg(4)}
+  tPos.x=xt tPos.y=yt
+  {rotArmTo(tAng[0],tAng[1]) drarm(0)}
+  {nqo[0].select("subiter",i) nqa.cp(nqo[0].out) nqa.gr("y","x",0,2,1)}
+  {nqo[1].select("subiter",i) nqa.cp(nqo[1].out) nqa.gr("y","x",0,3,5)}
+  ln=armLen[0]+armLen[1]
+  g.size(-ln,ln,-ln,ln)
+}
+
+//* drerr - draws error vs time from the two nqos
+proc drerr () { local i
+  {g.erase i=$1 if(nqa==nil)nqa=new NQS()}
+  if(!strcmp(dstr,"12jun14.06")) {
+    {nqo[0].select("subiter",i) nqa.cp(nqo[0].out) nqa.gr("err","t",0,2,1)}
+    {nqo[1].select("subiter",i) nqa.cp(nqo[1].out) nqa.gr("err","t",0,3,5)}
+  } else {
+    {nqo[0].select("subiter",i) nqa.cp(nqo[0].out) nqa.gr("errxy","t",0,2,1)}
+    {nqo[1].select("subiter",i) nqa.cp(nqo[1].out) nqa.gr("errxy","t",0,3,5)}
+  }
+  g.size(0,t,0,6)
+}
+
+//* besterr(targid) - get/print row of best ierr in nqi
+func besterr () {  local tid,er,idx,maxit
+  tid=$1
+  if(!strcmp(dstr,"12jun14.06")) maxit=200 else maxit=125
+  nqi.select("targid",tid,"IT",maxit)
+  er = nqi.getcol("ierr").min()
+  if(1==nqi.select("targid",tid,"ierr",er,"IT",maxit)) {
+    nqi.pr
+    nqi.select(-1,"targid",tid,"ierr",er)
+    idx = nqi.ind.x(0)
+    inputseed = nqi.getcol("inputseed").x(nqi.ind.x(0))
+    dvseed = nqi.getcol("dvseed").x(nqi.ind.x(0))
+    targid=tid
+    return idx
+  } 
+  return -1
+}
+
+//* makenqbinterr - makes an nqs with integrated error (sums error from all starting positions)
+obfunc makenqbinterr () { local i,d,tt,it,maxit localobj nqb,nq,st
+  i=d=tt=it=0 st=new String()
+  nqb=new NQS("str","inputseed","dvseed","targid","IT","ierr")
+  nqb.strdec("str")
+  if(!strcmp(dstr,"12jun14.06")) maxit=200 else maxit=125
+  for vtr(&inputseed,viseed) for vtr(&dvseed,vdvseed) for vtr(&targid,vtarg) for(it=0;it<=maxit;it+=5) {
+    if(strcmp(dstr,"12jun14.06") && it!=maxit) continue
+    if(it==maxit) {
+      sprint(st.s,"data/%s_inputseed_%d_dvseed_%d_targid_%d__itertest1D_A3.nqs",dstr,inputseed,dvseed,targid,dstr)
+    } else {
+      sprint(st.s,"data/%s_inputseed_%d_dvseed_%d_targid_%d__IterTrain_plastnq_iter_%d_itertest1D_C3.nqs",dstr,inputseed,dvseed,targid,it)
+    }
+    nq=new NQS(st.s)
+    if(!strcmp(dstr,"12jun14.06")) {
+      nqb.append(st.s,inputseed,dvseed,targid,it,nq.getcol("err").sum())
+    } else {
+      nqb.append(st.s,inputseed,dvseed,targid,it,nq.getcol("errxy").sum())
+    }
+    nqsdel(nq)
+  }
+  return nqb
+}
+
+//* geterrred - gets error reduction - just ratio of the two errors
+func geterrred () { local si,j
+  si=$1
+  for j=0,1 {
+    nqo[j].verbose=0
+    if(!strcmp(dstr,"12jun14.06")) {
+      if(nqo[j].select("subiter",si)) derr[j] = nqo[j].getcol("err").sum()
+    } else {
+      if(nqo[j].select("subiter",si)) derr[j] = nqo[j].getcol("errxy").sum()
+    }
+    nqo[j].verbose=1
+  }
+  return derr[0] / derr[1]
+}
+
+//* finditer(best) - looks for best or worst iteration in the two currently loaded nqos
+func finditer () { local i,j,sm,red,bestred,best,sidx,ab
+  best=$1 if(numarg()>1)ab=$2 else ab=0
+  if(nqo[0]==nil || nqo[1]==nil) return -1
+  sm=-1
+  for i=0,1 if(nqo[i]==nil) return -1 else {
+    nqo[i].verbose=0
+    nqo[i].tog("DB")
+    sm=MAXxy(sm,nqo[i].getcol("subiter").max)
+  }
+  if(best) red=1e9 else red=-1e9
+  {sidx=-1 bestred=red}
+  for i=0,sm {
+    for j=0,1 {
+      nqo[j].verbose=0
+      if(!strcmp(dstr,"12jun14.06")) {
+        if(nqo[j].select("subiter",i)) derr[j] = nqo[j].getcol("err").sum()
+      } else {
+        if(nqo[j].select("subiter",i)) derr[j] = nqo[j].getcol("errxy").sum()
+      }
+      if(ab) red=derr[0] else red = geterrred(i) // ratio of error
+      if(best) {
+        if(red < bestred) {sidx=i bestred=red}
+      } else {
+        if(red > bestred) {sidx=i bestred=red}
+      }
+      if(verbosearm) print i,red
+      nqo[j].verbose=1
+    }
+  }
+  for i=0,1 nqo[i].verbose=1
+  return sidx
+}
+
+//* worstiter - finds index of worst iteration in the two sets of nqos currently loaded
+func worstiter () {
+  return finditer(0)
+}
+
+//* bestiter - finds index of best iteration in the two sets of nqos currently loaded
+func bestiter () {
+  return finditer(1)
+}
+
+//* getprintratestats - gets (as nqs) and prints rate stats
+obfunc getprintratestats () { local cc,i,subiter localobj nqar,vr
+  nqar = new NQS("inputseed","dvseed","targid","subiter","ct","r","control")  
+  for vtr(&inputseed,viseed) for vtr(&dvseed,vdvseed) for vtr(&targid,vtarg) for subiter=0,15 {
+    print "loading: inputseed=",inputseed,",dvseed=",dvseed,",targid=",targid,",subiter=",subiter
+    loadsnq(inputseed,dvseed,targid,subiter)
+    for cc = 0,1 {
+      vr = getavgrates(mysnq[cc])
+      for i=0,CTYPi-1 if(col.numc[i]) nqar.append(inputseed,dvseed,targid,subiter,i,vr.x(i),cc)
+    }
+  }
+  nqar.verbose=0
+  for i=0,CTYPi-1 if(col.numc[i]) {
+    if(nqar.select("control",1,"ct",i)) {
+      print "naive:",CTYP.o(i).s,nqar.getcol("r").mean,"+/-",nqar.getcol("r").stderr
+    }
+  }
+  for vtr(&targid,vtarg) for i=0,CTYPi-1 if(col.numc[i]) {
+    if(nqar.select("control",0,"ct",i,"targid",targid)) {
+      print "targid:",targid,CTYP.o(i).s,nqar.getcol("r").mean,"+/-",nqar.getcol("r").stderr
+    }
+  }
+  for i=0,CTYPi-1 if(col.numc[i]) {
+    if(nqar.select("control",0,"ct",i)) {
+      print "overall trained:",CTYP.o(i).s,nqar.getcol("r").mean,"+/-",nqar.getcol("r").stderr
+    }
+  }
+  nqar.verbose=1
+  return nqar
+}
+
+//* spkvec(snq with spikes, rest of args are cell types) - extracts the
+// spike times from cell types and returns a new vector
+obfunc spkvec () { local i,ct localobj snq,vspkt,vct
+  snq=$o1
+  vspkt=new Vector()
+  snq.verbose=0
+  for i=2,numarg() if(snq.select("type",$i)) vspkt.append(snq.getcol("t"))
+  snq.verbose=1
+  return vspkt
+}
+
+//* getcvsync - returns NQS with cvpsync values for different populations of cells
+obfunc getcvsync () { local i,cc,subiter,sES,sEM,sESEM,sIS,sIM,sISL,sIML,sESIS,sEMIM,sESISL,sEMIML localobj nqcv,vspk
+  nqcv = new NQS("control","inputseed","dvseed","targid","subiter","sES","sEM","sESEM","sIS","sIM","sESIS","sEMIM","sISL","sIML","sESISL","sEMIML")
+  nqcv.clear(16*viseed.size*vdvseed.size*vtarg.size*2)
+  for vtr(&inputseed,viseed) for vtr(&dvseed,vdvseed) for vtr(&targid,vtarg) for subiter=0,15 {
+    print "loading: inputseed=",inputseed,",dvseed=",dvseed,",targid=",targid,",subiter=",subiter
+    loadsnq(inputseed,dvseed,targid,subiter)
+    for cc = 0,1 {
+      {vspk=spkvec(mysnq[cc],ES) sES=cvpsync(vspk,col.numc[ES])}
+      {vspk=spkvec(mysnq[cc],EM) sEM=cvpsync(vspk,col.numc[EM])}
+      {vspk=spkvec(mysnq[cc],ES,EM) sESEM=cvpsync(vspk,col.numc[ES]+col.numc[EM])}
+      {vspk=spkvec(mysnq[cc],IS) sIS=cvpsync(vspk,col.numc[IS])}
+      {vspk=spkvec(mysnq[cc],IM) sIM=cvpsync(vspk,col.numc[IM])}
+      {vspk=spkvec(mysnq[cc],ISL) sISL=cvpsync(vspk,col.numc[ISL])}
+      {vspk=spkvec(mysnq[cc],IML) sIML=cvpsync(vspk,col.numc[IML])}
+      {vspk=spkvec(mysnq[cc],ES,IS) sESIS=cvpsync(vspk,col.numc[ES]+col.numc[IS])}
+      {vspk=spkvec(mysnq[cc],EM,IM) sEMIM=cvpsync(vspk,col.numc[EM]+col.numc[IM])}
+      {vspk=spkvec(mysnq[cc],ES,ISL) sESISL=cvpsync(vspk,col.numc[ES]+col.numc[ISL])}
+      {vspk=spkvec(mysnq[cc],EM,IML) sEMIML=cvpsync(vspk,col.numc[EM]+col.numc[IML])}
+      nqcv.append(cc,inputseed,dvseed,targid,subiter,sES,sEM,sESEM,sIS,sIM,sESIS,sEMIM,sISL,sIML,sESISL,sEMIML)
+    }
+  }
+  return nqcv
+}
+
+//* make an nqs with some error scores (integrated, hits)
+// errtrained,naive are integrated error
+// hittrained,naive are whether error < 1 during a trial
+// startout is whether arm starts with distance >= 1 at beginning of trial
+// rtrained,naive is correlation of error vs time
+obfunc mknqerr () { local cc,i,subiter,startout,a localobj nqe,vr,vh,vcor
+  {a=allocvecs(vr,vh,vcor)   vrsz(2,vr,vh,vcor)}
+  nqe = new NQS("inputseed","dvseed","targid","subiter","errtrained","errnaive","hittrained","hitnaive","startout","rtrained","rnaive")
+  for vtr(&inputseed,viseed) for vtr(&dvseed,vdvseed) for vtr(&targid,vtarg) {
+    print "loading: inputseed=",inputseed,",dvseed=",dvseed,",targid=",targid
+    loadnqos(inputseed,dvseed,targid)
+    for i=0,1 nqo[i].verbose=0
+    for subiter=0,15 {
+      nqo[0].select("subiter",subiter)
+      if(nqo[0].getcol("err").x(0) >= 1) startout = 1
+      for cc=0,1 {
+        nqo[cc].select("subiter",subiter)
+        vr.x(cc) = nqo[cc].getcol("err").sum() //integrated error
+        vcor.x(cc) = nqo[cc].getcol("err").pcorrel(nqo[cc].getcol("t"))
+        if(nqo[cc].select("subiter",subiter,"err","<",1)>0) vh.x(cc)=1 else vh.x(cc)=0 //hits
+      }
+      nqe.append(inputseed,dvseed,targid,subiter,vr.x(0),vr.x(1),vh.x(0),vh.x(1),startout,vcor.x(0),vcor.x(1))
+    }
+    for i=0,1 nqo[i].verbose=1
+  }
+  dealloc(a)
+  return nqe
+}
+
+//* addangerr(nqa,targid) - add angular error to nqa
+proc addangerr () { local i,idx,jdx localobj nq
+  {nq=$o1 setTargByID(targid=$2) nq.tog("DB")}
+  if(nq.fi("elerr")!=-1) return
+  {nq.resize("sherr","elerr") nq.pad()}
+  idx = nq.fi("ang0")
+  jdx = nq.fi("ang1")
+  for i=0,nq.v.size-1 {
+    nq.v[nq.m-2].x(i) = (tAng[0] - nq.v[idx].x(i))
+    nq.v[nq.m-1].x(i) = (tAng[1] - nq.v[jdx].x(i))
+  }
+  for i=nq.m-2,nq.m-1 nq.v[i].abs()
+}
+
+//* make an nqs with some angular error scores (integrated, hits)
+// errtrained,naive are integrated error
+// hittrained,naive are whether error < 1 during a trial
+// startout is whether arm starts with distance >= 1 at beginning of trial
+// rtrained,naive is correlation of error vs time
+obfunc mknqangerr () { local cc,i,subiter,cut,a localobj nqe,vrsh,vrel,vcorsh,vcorel,vhsh,vhel
+  {a=allocvecs(vrsh,vrel,vcorsh,vcorel,vhsh,vhel)   vrsz(2,vrsh,vrel,vcorsh,vcorel,vhsh,vhel)}
+  nqe = new NQS("inputseed","dvseed","targid","subiter")
+  nqe.resize("errtrainedsh","errnaivesh","hittrainedsh","hitnaivesh","rtrainedsh","rnaivesh")
+  nqe.resize("errtrainedel","errnaiveel","hittrainedel","hitnaiveel","rtrainedel","rnaiveel")
+  cut=10 // cutoff for angular 'hits'
+  for vtr(&inputseed,viseed) for vtr(&dvseed,vdvseed) for vtr(&targid,vtarg) {
+    print "loading: inputseed=",inputseed,",dvseed=",dvseed,",targid=",targid
+    loadnqos(inputseed,dvseed,targid)
+    for i=0,1 {nqo[i].verbose=0 addangerr(nqo[i],targid)}
+    for subiter=0,15 {
+      nqo[0].select("subiter",subiter)
+      for cc=0,1 {
+        nqo[cc].select("subiter",subiter)
+        vrsh.x(cc) = nqo[cc].getcol("sherr").sum() //integrated error for shoulder angle
+        vcorsh.x(cc) = nqo[cc].getcol("sherr").pcorrel(nqo[cc].getcol("t")) // correlation of shoulder error vs time
+        if(nqo[cc].select("subiter",subiter,"sherr","<",cut)>0) vhsh.x(cc)=1 else vhsh.x(cc)=0 //hits
+        vrel.x(cc) = nqo[cc].getcol("elerr").sum() //integrated error for elbow angle
+        vcorel.x(cc) = nqo[cc].getcol("elerr").pcorrel(nqo[cc].getcol("t")) // correlation of elbow error vs time
+        if(nqo[cc].select("subiter",subiter,"elerr","<",cut)>0) vhel.x(cc)=1 else vhel.x(cc)=0 //hits
+      }
+      nqe.append(inputseed,dvseed,targid,subiter,vrsh.x(0),vrsh.x(1),vhsh.x(0),vhsh.x(1),vcorsh.x(0),vcorsh.x(1),vrel.x(0),vrel.x(1),vhel.x(0),vhel.x(1),vcorel.x(0),vcorel.x(1))
+    }
+    for i=0,1 nqo[i].verbose=1
+  }
+  dealloc(a)
+  return nqe
+}
+
+////* make an nqs with concat of all the hold (motor map) info 
+obfunc mknqhold () { local i,sz0,sz1 localobj nqh,xo
+ nqh=new NQS("inputseed","dvseed","targid","errxy","errel","errsh","errp","control")
+ xo=new Union()
+ for vtr(&inputseed,viseed) for vtr(&dvseed,vdvseed) for vtr(&targid,vtarg) {
+   print "loading: inputseed=",inputseed,",dvseed=",dvseed,",targid=",targid
+   loadnqos(inputseed,dvseed,targid,2)
+   for i=0,1 {
+     {nqo[i].resize("inputseed") nqo[i].pad() nqo[i].v[nqo[i].m-1].fill(inputseed)}
+     {nqo[i].resize("dvseed") nqo[i].pad() nqo[i].v[nqo[i].m-1].fill(dvseed)}
+     {nqo[i].resize("targid") nqo[i].pad() nqo[i].v[nqo[i].m-1].fill(targid)}
+     {nqo[i].resize("control") nqo[i].pad() nqo[i].v[nqo[i].m-1].fill(i)}
+     sz0=nqh.v.size
+     sz1=nqo[i].v.size
+     for scase(xo,"inputseed","dvseed","targid","errxy","errel","errsh","errp","control") {
+       nqh.getcol(xo.s).resize(sz0+sz1)
+       nqh.getcol(xo.s).resize(sz0)
+       nqh.getcol(xo.s).append(nqo[i].getcol(xo.s))
+     }
+   }
+ }
+ return nqh
+}
+
+//obfunc rdallwgnq
+
+//* calls
+
+//loadnqb()
+// mkmynqs()

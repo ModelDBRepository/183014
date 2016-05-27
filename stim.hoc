@@ -1,0 +1,314 @@
+// $Id: stim.hoc,v 1.28 2012/06/09 20:06:27 samn Exp $ 
+
+//* Declarations
+
+dosetexvals=name_declared("wmatex")==0 // whether to set values in wmatex,ratex
+
+sprint(tstr,"d[%d][%d][%d]",numcols,CTYPi,STYPi)
+declare("wmatex",tstr,"ratex",tstr) // weights,avg. rate of external inputs
+
+declare("nstim","o[1]")
+
+declare("sgrdur",mytstop) //duration of poisson stims
+declare("inputseed",1234)
+declare("sgrhzEE",200,"sgrhzEI",200,"sgrhzII",100,"sgrhzIE",100,"sgrhzNM",0,"sgron",1,"sgrdel",0)//poisson rates
+declare("sgrhzdel",0)//variance in sgrhz for an INTF6
+declare("EXGain",22) // gain for poisson external inputs -- original = 15
+declare("lcstim",new List()) // list of CSTIM objects
+{sprint(tstr,"o[%d]",numcols) declare("nqwmex",tstr)} // new NQS("ct","sy","w","rate") // NQS passed to CSTIM init
+{sprint(tstr,"d[%d]",numcols) declare("EIBalance",tstr)} // whether to balance rate of external E/I inputs
+declare("usens",1) // whether to use NetStims in CSTIM
+declare("EMWEXGain",1.0,"EMREXGain",1.0) // gains for external inputs to EM (1st is for weights, 2nd for rates)
+declare("skipEXIS",0) // whether to skip noise to IS,ISL cells
+declare("skipEXIM",0) // whether to skip noise to IM,IML cells
+declare("skipEXES",0) // whether to skip noise to ES cells
+declare("skipEXEM",0) // whether to skip noise to EM cells
+
+//* shock-related params
+declare("MAXSHOCK",10)
+sprint(tstr,"d[%d][%d][%d][%d]",numcols,CTYPi,STYPi,MAXSHOCK)
+declare("wshock",tstr,"durshock",tstr,"prctshock",tstr,"nshock",tstr,"isishock",tstr,"startshock",tstr)
+
+//* "modulation"-related params -- just modulates external input weights to ModType
+// applies modulation at t = modulationT ms.
+// ModGain is scaling factor for AM2,NM2 synapses
+declare("ModONT",0,"fid","o[1]","ModGain",1,"ModType",EM) // when to apply modulation to ModType
+declare("ModOFFT",-1) // modulation stays on full sim -- -1==never modulate off
+
+//* Training-signal related params
+declare("TrainISI",0,"TrainNUM",0,"TrainTY",E4,"TrainW",0,"TrainDUR",1,"TrainPRCT",100,"TrainSY",AM2)
+
+declare("dosendex",0,"nqwrex","o[2]","fix","o[1]","EXRedStartT",5e3,"EXDT",5e3,"EXFctr",0.99)
+
+SCAHP=SCTH=1
+
+//* "zip"-related params -- modulates strength of internal weights from E->X
+declare("ZipONT",0,"zid","o[1]","EERed",1,"EIRed",1)
+declare("ZipOFFT",-1) // zip stays on full sim -- -1==never zip off
+
+//* ModulateON -- applies ModGain to AM2,NM2 inputs to ModType cells (NetCon weights)
+proc ModulateON () { local i localobj nc,ncl
+  print "Modulation of " , ModGain, " to " , CTYP.o(ModType).s, " ON at t = ", t
+  for i=0,numcols-1 { ncl = col[i].cstim.ncl
+    for ltr(nc,ncl) if(!isojt(nc.pre,INTF6[0]) && isojt(nc.syn,INTF6[0])) {
+      if(nc.syn.type==ModType) {
+        if(nc.weight(AM2)>0) nc.weight(AM2) = wmatex[i][ModType][AM2] * ModGain
+        if(nc.weight(NM2)>0) nc.weight(NM2) = wmatex[i][ModType][NM2] * ModGain
+      }
+    }
+  }
+}
+
+//* ModulateOFF -- applies ModGain to AM2,NM2 inputs to ModType cells (NetCon weights)
+proc ModulateOFF () { local i localobj nc,ncl
+  print "Modulation of " , ModGain, " to " , CTYP.o(ModType).s, " OFF at t = ", t
+  for i=0,numcols-1 { ncl = col[i].cstim.ncl
+    for ltr(nc,ncl) if(!isojt(nc.pre,INTF6[0]) && isojt(nc.syn,INTF6[0])) {
+      if(nc.syn.type==ModType) {
+        if(nc.weight(AM2)>0) nc.weight(AM2) = wmatex[i][ModType][AM2]
+        if(nc.weight(NM2)>0) nc.weight(NM2) = wmatex[i][ModType][NM2]
+      }
+    }
+  }
+}
+
+//* InitModulation
+proc InitModulation () {
+  if(ModGain!=1) {
+    cvode.event(ModONT,"ModulateON()")
+    if(ModOFFT > 0)  cvode.event(ModOFFT,"ModulateOFF()")
+  }
+}
+
+//* ZipON - turn on zip - reduce internal AM2,NM2 weights
+proc ZipON () { local i,j,k,c
+  for c=0,numcols-1 for col[c].ctt(&i) if(!ice(i)) {
+    for col[c].ctt(&j) if(col[c].div[i][j]) {
+      if(ice(j)) {
+        for case(&k,AM2,NM2) col[c].wd0[i][j][k] /= EIRed
+      } else {
+        for case(&k,AM2,NM2) col[c].wd0[i][j][k] /= EERed
+      }
+    }
+  }
+}
+
+//* ZipOFF - turn off zip - resets internal weights back up
+proc ZipOFF () { local i,j,k,c
+  for c=0,numcols-1 for col[c].ctt(&i) if(!ice(i)) {
+    for col[c].ctt(&j) if(col[c].div[i][j]) {
+      if(ice(j)) {
+        for case(&k,AM2,NM2) col[c].wd0[i][j][k] *= EIRed
+      } else {
+        for case(&k,AM2,NM2) col[c].wd0[i][j][k] *= EERed
+      }
+    }
+  }
+}
+
+//* InitZip
+proc InitZip () {
+  if(EERed!=1 || EIRed!=1) {
+    cvode.event(ZipONT,"ZipON()")
+    if(ZipOFFT > 0)  cvode.event(ZipOFFT,"ZipOFF()")
+  }
+}
+
+//* setwmatex - set weights of external inputs to INTF6s
+proc setwmatex () {  local ct,sy,c
+  if(dosetexvals) {
+    for c=0,numcols-1 {
+      for ct=0,CTYPi-1 for sy=0,STYPi-1 wmatex[c][ct][sy]=0
+      for ct=0,CTYPi-1 if(col[c].numc[ct]) {
+        if(ct==DP) continue // no external 'noise' to DP cells
+        if(ct==ES && skipEXES) continue // no external 'noise' to ES cells
+        if((ct==IS || ct==ISL) && skipEXIS) continue // no external 'noise' to IS/ISL cells?
+        if((ct==IM || ct==IML) && skipEXIM) continue // no external 'noise' to IM/IML cells?
+        if(ct==EM && skipEXEM) continue // no external 'noise' to EM cells
+        if(ice(ct)) {
+          ratex[c][ct][AM2]=sgrhzEI
+          ratex[c][ct][GA2]=ratex[c][ct][GA]=sgrhzII
+        } else {
+          ratex[c][ct][AM2]=sgrhzEE
+          ratex[c][ct][GA2]=ratex[c][ct][GA]=sgrhzIE
+        } 
+        ratex[c][ct][NM2]=sgrhzNM
+        if(IsLTS(ct)) {
+          wmatex[c][ct][AM2] = 0.2
+          wmatex[c][ct][NM2] = 0.025
+          wmatex[c][ct][GA]=wmatex[c][ct][GA2]=0.125
+        } else if(ice(ct)) {
+          wmatex[c][ct][NM2] = 0.100   
+          wmatex[c][ct][AM2] = 0.275 
+          wmatex[c][ct][GA]=wmatex[c][ct][GA2]=0.125
+        } else if(ct==EM) {
+          wmatex[c][ct][NM2] = 0.05 * 1.0
+          wmatex[c][ct][AM2] = 0.25 * 1.05
+          wmatex[c][ct][GA]=wmatex[c][ct][GA2]=0.125
+        } else {
+          wmatex[c][ct][NM2] = 0.05   
+          wmatex[c][ct][AM2] = 0.25 
+          wmatex[c][ct][GA]=wmatex[c][ct][GA2]=0.125
+        }
+        for sy=0,STYPi-1 wmatex[c][ct][sy] *= EXGain // apply gain control
+      }
+      {wmatex[c][EM][AM2] *= EMWEXGain  wmatex[c][EM][NM2] *= EMWEXGain}
+      {ratex[c][EM][AM2] *=EMREXGain  ratex[c][EM][NM2] *=EMREXGain}
+      nqsdel(nqwmex[c]) nqwmex[c]=new NQS("ct","sy","w","rate")
+      for ct=0,CTYPi-1 for sy=0,STYPi-1 if(wmatex[c][ct][sy]) nqwmex[c].append(ct,sy,wmatex[c][ct][sy],ratex[c][ct][sy])
+    }
+  }
+}
+
+proc rewt () {} // nothing needs to be done since copy directly into wd0[][][]
+
+//* setcstim - set external inputs to COLUMNs using CSTIM
+proc setcstim () { local i,seed
+  for i=0,lcol.count-1 {
+    print i
+    if(dbgcols)seed=inputseed else seed=(i+1)*inputseed
+    lcstim.append(new CSTIM(lcol.o(i),seed,sgrdur,sgrhzdel,EIBalance[i],usens))
+    lcstim.o(lcstim.count-1).setwm(nqwmex[i])
+    lcstim.o(lcstim.count-1).setspks()
+  }
+  print "set external inputs"
+}
+
+//* clrshock -- clear all shock params and actual shocks
+proc clrshock () { local i,j,k,l
+  for i=0,numcols-1 for j=0,CTYPi-1 for k=0,STYPi-1 for l=0,MAXSHOCK-1 {
+    wshock[i][j][k][l]=durshock[i][j][k][l]=prctshock[i][j][k][l]=nshock[i][j][k][l]=isishock[i][j][k][l]=startshock[i][j][k][l]=0
+  }
+  setshock(1)
+}
+
+//* setshockp(celltype,column,synapsetype,weight,starttime,prctcells,nshocks,isi,dur,shocknum)
+proc setshockp () { local i,x,cty,col,syty,wt,tm,prct,ns,isi,dur,shockn
+  cty=$1 col=$2 syty=$3 wt=$4 tm=$5 prct=$6 ns=$7 isi=$8 dur=$9 shockn=$10
+  wshock[col][cty][syty][shockn] = wt
+  durshock[col][cty][syty][shockn] = dur
+  prctshock[col][cty][syty][shockn] = prct
+  nshock[col][cty][syty][shockn] = ns
+  isishock[col][cty][syty][shockn] = isi
+  startshock[col][cty][syty][shockn] = tm
+}
+
+//* setshock([clear vq first]) - set stims using shock matrices , NB: DEFAULT IS TO CLEAR vq FIRST
+proc setshock () { local clr,i,j,k,l,tt,set,ns
+  if(numarg()>0) clr=$1 else clr=1
+  for i=0,numcols-1 for ns=0,1 {
+    set=0 // whether setting new spikes
+    if(clr) {col[i].cstim.vq.clear() col[i].ce.o(0).clrvspks()} // clear shocks to this column?
+    for j=0,CTYPi-1 for k=0,STYPi-1 if(wshock[i][j][k][ns]>0 && nshock[i][j][k][ns]>0) {
+      set = 1
+      tt = startshock[i][j][k][ns] // time
+      for l=0,nshock[i][j][k][ns]-1 {
+        col[i].cstim.shock(durshock[i][j][k][ns],prctshock[i][j][k][ns],j,tt,9342*(i+1)*(j+1)*(k+1)*(l+1),k,wshock[i][j][k][ns]) 
+        tt += isishock[i][j][k][ns] // inc by ISI
+      }
+    }
+    if(set) {
+      col[i].cstim.pushspks()
+      //col[i].cstim.vq.pr()
+      print col[i].cstim.vq.size(-1)
+    }
+  }
+}
+
+//* trainsig(isi,signal number,weight,ty,dur,prct[,clear]) - setup training signal
+proc trainsig () { local i,numshocks,isi,clr,w,ty,dur,prct,sy
+  if(numarg()>7) clr=$8 else clr=0
+  if(clr) clrshock()
+  isi=$1
+  numshocks = (plastendT_INTF6 - plaststartT_INTF6) / isi
+  w=$3 ty=$4 dur=$5 prct=$6 sy=$7
+  for i=0,numcols-1 setshockp(ty,i,sy,w,plaststartT_INTF6,prct,numshocks,isi,dur,$2)
+  setshock(0)
+}
+
+//* wrex2nq(col) - return an NQS with external input info
+obfunc wrex2nq () { local i,sy,r,w,row,a localobj enq,col,nsl,ncl,nc,vsy,vm
+  a=allocvecs(vsy,vm) vsy.append(GA,GA2,AM2,NM2) vm.append(0,0,1,0,3,4,2)
+  col=$o1 ncl=col.cstim.ncl nsl=col.cstim.nsl
+  enq = new NQS("id","wGA","wGA2","wAM2","wNM2","rGA","rGA2","rAM2","rNM2","bal")
+  if(col.allcells<2) {
+    dealloc(a)
+    return enq
+  }
+  enq.v.indgen(0,col.allcells-1,1)
+  enq.pad()
+  for i=1,enq.m-1 enq.v[i].fill(0)
+  for ltr(nc,ncl,&i) {
+    row = nc.syn.id
+    for vtr(&sy,vsy) if(nc.weight(sy)) {
+      w = enq.v[vm.x(sy)].x(row) = nc.weight(sy)
+      r = enq.v[vm.x(sy)+4].x(row) = 1e3/nsl.o(i).interval
+      if(sy==AM2 || sy==NM2) {
+        enq.v[9].x(row) += r*w
+      } else {
+        enq.v[9].x(row) -= r*w
+      }
+      break
+    }
+  }
+  dealloc(a)
+  return enq
+}
+
+//* nq2wrex(enq,col) - sets external weight/rate params based on NQS
+proc nq2wrex () { local i,sy,row,a localobj enq,col,nsl,ncl,nc,vsy,vm
+  a=allocvecs(vsy,vm) vsy.append(GA,GA2,AM2,NM2) vm.append(0,0,1,0,3,4,2)
+  enq = $o1 col=$o2 ncl=col.cstim.ncl nsl=col.cstim.nsl
+  if(enq.v.size<1) return
+  for ltr(nc,ncl,&i) {
+    row = nc.syn.id
+    for vtr(&sy,vsy) if(nc.weight(sy)) {
+      nc.weight(sy) = enq.v[vm.x(sy)].x(row) 
+      nsl.o(i).interval = 1e3 / enq.v[vm.x(sy)+4].x(row) 
+      break
+    }
+  }
+  dealloc(a)
+}
+
+//* updateEX
+proc updateEX () { local i,j localobj co
+  print "updateEX at t = ", t
+  for ltr(co,lcol,&i) {
+    for j=1,4 nqwrex[i].v[j].mul(EXFctr)
+    nq2wrex(nqwrex[i],col[i])
+  }
+  cvode.event(t+EXDT,"updateEX()") // set next update weights event
+}
+
+//* mysendex - starts off the update EX q
+proc mysendex () { local i,sz localobj xo,co
+  for ltr(co,lcol,&i) {
+    nqsdel(nqwrex[i])
+    nqwrex[i] = wrex2nq(col[i])
+  }
+  cvode.event(EXRedStartT,"updateEX()") 
+}
+
+//* sethandlers - setup runtime events, if needed
+proc sethandlers () {
+  // sets up modulation events to ModType, only matters if ModGain != 1 (supposed to be < 1 for damage)
+  // fid = new FInitializeHandler(1,"InitModulation()") 
+  // sets up Zip, if applicable (only iff EERed !=1 or EIRed != 1)
+  zid = new FInitializeHandler(1,"InitZip()") 
+  if(dosendex) fix=new FInitializeHandler("mysendex()")
+}
+
+//* func calls
+
+setwmatex() // sets params for poisson inputs
+
+if (!jcn) rjinet() //means no jitcon
+
+setcstim() // creates poisson inputs
+
+if(TrainW>0 && TrainISI>0) {
+  trainsig(TrainISI,0,TrainW,TrainTY,TrainDUR,TrainPRCT,TrainSY)//optional training signal during plasticity period
+}
+
+sethandlers() // for events during run

@@ -1,0 +1,15 @@
+: $Id: parameters.multi,v 1.3 2011/11/02 16:25:50 samn Exp $ 
+
+DEFAULT vecst
+DEFAULT stats
+DEFAULT misc
+DEFAULT intfsw
+DEFAULT nstim
+DEFAULT intf6
+DEFAULT infot
+DEFAULT place
+DEFAULT updown
+DEFAULT drspk
+DEFAULT nsloc
+DEFAULT mySTDP
+

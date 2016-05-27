@@ -1,0 +1,26 @@
+// sim.hoc -- script for running the virtual arm sim without Emacs
+
+// Initialization script for the intfcol-based virtual arm model. bbbq
+//
+// Last update: 11/3/11 (georgec)
+
+// Stuff run-neuron does.  (Comment out when using run-neuron.)
+xopen("/usr/site/nrniv/simctrl/hoc/setup.hoc")
+xopen("/usr/site/nrniv/simctrl/hoc/nrnoc.hoc")
+
+load_file("init.hoc")
+
+// Load the template file.
+//sload_file("geom.hoc")
+
+// Load the "current sim" files.
+load_file("nqsnet.hoc")
+load_file("network.hoc")
+load_file("params.hoc")
+load_file("stim.hoc")
+load_file("run.hoc")
+load_file("nload.hoc")
+load_file("basestdp.hoc")
+load_file("msarm.hoc")
+
+//load_file("saveoutput.hoc") 

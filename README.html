@@ -1,0 +1,94 @@
+<html><pre>
+This code was used to run the simulations for the following 2 papers:
+
+1. Dura-Bernal S, Zhou X, Neymotin SA, Przekwas A, Francis JT and
+Lytton WW (2015) Cortical Spiking Network Interfaced with Virtual
+Musculoskeletal Arm and Robotic Arm.  Front. Neurorobot. 9:13. doi:
+<a href="http://dx.doi.org/10.3389/fnbot.2015.00013">10.3389/fnbot.2015.00013</a> Available online at:
+<a href="http://journal.frontiersin.org/article/10.3389/fnbot.2015.00013/full">http://journal.frontiersin.org/article/10.3389/fnbot.2015.00013/full</a>
+
+2. Dura-Bernal S, Li K, Neymotin SA, Francis JT, Principe JC and
+Lytton WW (2016).  Restoring behavior via inverse neurocontroller in a
+lesioned cortical spiking model driving a virtual arm.
+Front. Neurosci. 10:28. doi: <a href="http://dx.doi.org/10.3389/fnins.2016.00028">10.3389/fnins.2016.00028</a> Available online
+at:
+<a href="http://journal.frontiersin.org/article/10.3389/fnins.2016.00028/full">http://journal.frontiersin.org/article/10.3389/fnins.2016.00028/full</a>
+
+The full code for this model includes compiled C code for the
+musculoskeletal arm (the zip file is 80 MB and after unzipping 265 MB)
+and can be downloaded through this link:
+<a href="http://senselab.med.yale.edu/modeldb/data/183014/arm2dms_modeldb.zip">http://senselab.med.yale.edu/modeldb/data/183014/arm2dms_modeldb.zip</a>
+
+The code requires NEURON and Python and has been tested on Linux
+machines (Red Hat and Ubuntu). Follow the steps below, which include 3
+different options depending on the paper and arm model you wish to
+run:
+
+1. Unzip all files.
+2. Type "nrnivmodl mod" in the root directory. This should create a
+directory called either i686 or x86_64, depending on your computer's
+architecture.
+
+IMPORTANT: The model can be run using either the simple 2-stick arm
+model, or the realistic musculoskeletal arm model.
+
+
+——————————————————————————————————————————
+
+To run paper 1 (2015) model with realistic virtual musculoskeletal
+arm:
+
+3a. To use the musculoskeletal arm set "dummyArm = 0" in
+arminterface_pipe.py
+4a. To run model type "nrniv -python sim.py"
+
+This should train the system to reach the left target and then
+evaluate the system's performance during a 1-second reaching trial. A
+2D view of the arm movements will be shown during the simulation.
+
+The parameters have been set to reproduce the left reaching trajectory
+shown in the paper for the musculoskeletal arm model. Model and
+simulation parameters can be modified in main.hoc.
+
+The musculoskeletal arm model is provided as a C++ executable tested
+under RedHat. For other options please contact the author.
+
+——————————————————————————————————————————
+To run paper 1 (2015) model with simple dummy arm:
+
+3b. To use the simple arm set "dummyArm = 1" in arminterface_pipe.py.
+4b. To run model type “nrniv -python sim_demo.py”
+
+This example employs the simple arm model ('dummyArm'), and trains the
+network for 30 seconds of simulated time to reach the left
+target. Then it evaluates the network for 1 second of simulated
+time. In total should last ~<1min of real time. It shows a 2d view of
+the arm movements during training and testing. The 1-second evaluation
+doesn't show a perfect reach to the target since its using the
+musculoskeletal arm training params, and a reduced training time
+(usually >300 seconds of simulated time); but is useful for
+illustration purposes.
+
+
+—————————————————————————————————————————————————— 
+To run paper 2 (2016) model with realistic virtual musculoskeletal arm:
+
+3a. To use the musculoskeletal arm set "dummyArm = 0" in arminterface_pipe.py
+4c. To run model type “python runbatch_neurostim.py”
+
+This will run 8 sims (2 targets x 2 types of perturbation (cell and
+synapse) x 2 intensities of perturbation (5% adn 10%)), each of 1-sec
+duration. The network will be loaded with pre-trained weights,
+perturbed, and repaired via neurostimulation (based on stimulation
+patterns derived by the Matlab-based neurocontroller — see
+<a href="https://github.com/Neurosim-lab/controller_spiking_network_arm">https://github.com/Neurosim-lab/controller_spiking_network_arm</a>)
+
+Note this requires the musculoskeletal arm model (provided as an
+executable for Redhat). To use the simple dummy arm, set
+
+"dummyArm = 1”, but take into account that the arm trajectories will
+not reproduce the results in the paper.
+
+For any questions or further assistance please contact:
+salvadordura at gmail.com
+</pre></html>

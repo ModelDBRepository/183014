@@ -1,0 +1,146 @@
+// $Id: params.hoc,v 1.224 2012/05/04 03:43:33 samn Exp $
+
+//* INTF6 params
+mg_INTF6=1.6
+EAM_INTF6=65 // these are deviations above RMP
+ENM_INTF6=90
+EGA_INTF6=-15
+
+jrsvn_INTF6=1e3
+jrsvd_INTF6=2e4
+jrtm_INTF6 = 5e3
+
+v_init=1000 // so keep v's as set randomly
+
+mytstop= 300* 1e3  // used to create the stim noise
+
+if(!autotune) if(useSTDP) seadsetting_INTF6 = 3 // plasticity on
+
+//* Declarations
+
+declare("fih","o[1]","nstim","o[1]")
+vseed_stats(223481)
+rdm.MCellRan4(seed_stats)
+
+//* IREparams - setup IRE cells
+proc IREparams () { local ii,jj localobj xo,co
+  for ltr(co,lcol) for case(&ii,IRE) if(co.numc[ii]>0) {
+    for jj=co.ix[ii],co.ixe[ii] { xo=co.ce.o(jj)
+      
+      xo.ahpwt=1
+      xo.tauahp=400
+      xo.RMP= -65
+      xo.VTH= -40 
+      xo.refrac= 1
+      xo.Vblock= 50
+      
+      xo.tauGA  = 10
+      xo.tauGA2 = 20
+      xo.tauAM2 = 20
+      xo.tauNM2 = 300
+      
+      xo.tauRR = 0.1
+      xo.RRWght = .25 
+    }
+  }
+}
+
+//* TCparams - setup TC cells
+proc TCparams () { local ii,jj localobj xo,co
+  for ltr(co,lcol) for case(&ii,TC) if(co.numc[ii]>0) {
+    for jj=co.ix[ii],co.ixe[ii] { xo=co.ce.o(jj)
+      
+      xo.ahpwt=1
+      xo.tauahp=400
+      xo.RMP= -65
+      xo.VTH= -40 
+      xo.refrac= 1
+      xo.Vblock= 50
+      
+      xo.tauGA  = 10
+      xo.tauGA2 = 20
+      xo.tauAM2 = 20
+      xo.tauNM2 = 300
+      
+      xo.tauRR = 0.1 
+      xo.RRWght = .25 
+    }
+  }
+}
+
+//* RSparams - setup regular spiking excitatory cells
+proc RSparams () { local ii,jj localobj xo,co
+  for ltr(co,lcol) for case(&ii,ES,EM,E2,E4,E5R,E5B,E6) if(co.numc[ii]>0) {
+    for jj=co.ix[ii],co.ixe[ii] { xo=co.ce.o(jj)
+      
+      xo.ahpwt=1
+      xo.tauahp=400
+      xo.RMP= -65
+      xo.VTH= -40 
+      xo.refrac=  5
+      xo.Vblock= -25
+      
+      xo.tauGA  = 10
+      xo.tauGA2 = 20
+      xo.tauAM2 = 20
+      xo.tauNM2 = 300
+      
+      xo.tauRR = 8 
+      xo.RRWght = .75 
+    }
+  }
+}
+
+//* LTSparams - setup low-threshold spiking interneurons
+proc LTSparams () { local ii,jj localobj xo,co
+  for ltr(co,lcol) for case(&ii,ISL,IML,I2L,I4L,I5L,I6L) if(co.numc[ii]>0) {
+    for jj=co.ix[ii],co.ixe[ii] { xo=co.ce.o(jj)  
+      xo.ahpwt=0.5
+      xo.refrac= 2.5
+      xo.tauahp=50
+      xo.Vblock=-10    
+      xo.RMP = -65
+      xo.VTH= -47
+
+      xo.tauGA  = 10
+      xo.tauGA2 = 20
+      xo.tauAM2 = 20
+      xo.tauNM2 = 300
+      
+      xo.tauRR = 1.5
+      xo.RRWght = 0.25
+    }
+  }
+}
+
+//* FSparams - setup fast spiking interneurons
+proc FSparams () { local ii,jj localobj xo,co
+  for ltr(co,lcol) for case(&ii,IS,IM,I2,I2C,I4,I5,I6,I6C) if(co.numc[ii]>0) {
+    for jj=co.ix[ii],co.ixe[ii] { xo=co.ce.o(jj)    
+      xo.ahpwt=0.5
+      xo.refrac= 2.5
+      xo.tauahp=50
+      xo.Vblock=-10    
+      xo.RMP = -63
+      xo.VTH= -40
+
+      xo.tauGA  = 10
+      xo.tauGA2 = 20
+      xo.tauAM2 = 20
+      xo.tauNM2 = 300
+      
+      xo.tauRR = 1.5
+      xo.RRWght = 0.25
+    }
+  }
+}
+
+//* function calls
+
+// cell params
+IREparams()
+TCparams()
+RSparams()
+LTSparams()
+FSparams()
+
