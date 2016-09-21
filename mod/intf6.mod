@@ -378,7 +378,7 @@ CONSTRUCTOR {
     //     THE PARAMETERS IN THIS 'BLOCK' ARE ASSOCIATED WITH HOMEOSTATIC SYNAPTIC SCAING
     ip->activity = 0; // Sensor for this cell's recent activity (default 0MHz i.e. cycles per ms)
     ip->max_err = 0; // Max error value
-    ip->max_scale = 4; // Max scaling factor
+    ip->max_scale = 100; // Max scaling factor
     ip->lastupdate = 0; // Time of last activity sensor decay / spike update
     ip->scalefactor = 1.0; // Default scaling factor for this cell's AMPA synapses
     ip->goal_activity = -1; // Cell's target activity (MHz i.e. cycles per ms)
@@ -394,6 +394,20 @@ CONSTRUCTOR {
     } else installed=1.0; // set or reset it
     cbsv=0x0;
   }
+  ENDVERBATIM
+}
+
+PROCEDURE resetscaling () {
+  VERBATIM
+  ip = IDP;
+  //     THE PARAMETERS IN THIS 'BLOCK' ARE ASSOCIATED WITH HOMEOSTATIC SYNAPTIC SCAING
+  ip->activity = 0; // Sensor for this cell's recent activity (default 0MHz i.e. cycles per ms)
+  ip->max_err = 0; // Max error value
+  ip->max_scale = 100; // Max scaling factor
+  ip->lastupdate = 0; // Time of last activity sensor decay / spike update
+  ip->scalefactor = 1.0; // Default scaling factor for this cell's AMPA synapses
+  ip->goal_activity = -1; // Cell's target activity (MHz i.e. cycles per ms)
+  ip->activity_integral_err = 0.0; // Integral of cell's activity divergence from target activity
   ENDVERBATIM
 }
 
@@ -446,6 +460,7 @@ VERBATIM
   activityoneovertau = 1.0 / activitytau; //@
 
 ENDVERBATIM
+  : resetscaling()
 }
 
 PROCEDURE reset () {
@@ -1282,7 +1297,7 @@ PROCEDURE callback (fl) {
     if (jp->sprob[i]) (*pnt_receive[jp->dvi[i]->_prop->_type])(jp->dvi[i], wts, idtflg); 
     _p=upnt->_prop->param; _ppvar=upnt->_prop->dparam; // restore pointers
     i++;
-    if (i>=jp->dvt) return; // ran out
+    if (i>=jp->dvt) return 0; // ran out
     ddel=jp->del[i]-del0;   // delays are relative to event; use difference in delays
   }
   // skip over pruned outputs and dead cells:
@@ -1306,7 +1321,7 @@ VERBATIM {
   int i,j,k,prty,poty,dv,dvt,dvii; double *x, *db, *dbs; 
   Object *lb;  Point_process *pnnt, **da, **das;
   ip=IDP; pg=ip->pg;//this should only be called after jitcondiv()
-  if (ip->dead) return;
+  if (ip->dead) return 0;
   prty=ip->type;
   sead=GetDVIDSeedVal(ip->id);//seed for divergence and delays
   for (i=0,k=0,dvt=0;i<CTYN;i++) { // dvt gives total divergence
@@ -1429,7 +1444,7 @@ FUNCTION getdvi () {
     void* voi, *voi2,*voi3; Point_process **das;
     ip=IDP; pg=ip->pg;
     getactive=a2=a3=a4=0;
-    if (ip->dead) return;
+    if (ip->dead) return 0.0;
     dvt=ip->dvt; 
     dbs=ip->del;   das=ip->dvi;
     _lgetdvi=(double)dvt; 
@@ -2178,9 +2193,9 @@ FUNCTION getplast () {
 PROCEDURE setdvi () {
 VERBATIM {
   int i,j,k,dvt,flag; double *d, *y, *ds, *w1, *w2; char* s;
-  if (! ifarg(1)) {printf("setdvi(v1,v2[,v3,flag]): v1:cell#s; v2:delays; v3:distal synapses\n"); return; }
+  if (! ifarg(1)) {printf("setdvi(v1,v2[,v3,flag]): v1:cell#s; v2:delays; v3:distal synapses\n"); return 0; }
   ip=IDP; pg=ip->pg; // this should only be called after jitcondiv()
-  if (ip->dead) return;
+  if (ip->dead) return 0;
   dvt=vector_arg_px(1, &y);
   i=vector_arg_px(2, &d);
   s=ifarg(3)?(char*)calloc((j=vector_arg_px(3,&ds)),sizeof(char)):0x0;
@@ -2309,7 +2324,7 @@ PROCEDURE prune () {
       printf("INTF6pruneB:Div exceeds dscrsz: %d>%d\n",ip->dvt,dscrsz); hxe(); }
     if (p==0.) {
       for (j=0;j<ip->dvt;j++) ip->sprob[j]=1; // unprune completely
-      return; // now that unpruning is done, can return
+      return 0; // now that unpruning is done, can return
     }
     potype=ifarg(2)?(int)*getarg(2):-1;
     sead=(ifarg(3))?(unsigned int)*getarg(3):GetDVIDSeedVal(ip->id);//seed for divergence and delays
@@ -2645,7 +2660,7 @@ PROCEDURE jitrec () {
   if(verbose>1) printf("jitrec from col %d, ip=%p, pg=%p\n",ip->col,ip,pg);
   if (! ifarg(2)) { // clear with jitrec() or jitrec(0)
     pg->jrmax=0; pg->jridv=0x0; pg->jrtvv=0x0;
-    return;
+    return 0;
   }
   i =   vector_arg_px(1, &pg->jrid); // could just set up the pointers once
   pg->jrmax=vector_arg_px(2, &pg->jrtv);
@@ -2804,8 +2819,8 @@ PROCEDURE record () {
   VERBATIM {
   int i,j,k,nz; double ti;
   vp = SOP;
-  if(!vp) {printf("**** record ERRA: vp=NULL!\n"); return;}
-  if (tg>=t) return;
+  if(!vp) {printf("**** record ERRA: vp=NULL!\n"); return 0;}
+  if (tg>=t) return 0;
   if (ip->record==1) {
     while ((int)vp->p >= (int)vp->size-(int)((t-tg)/vdt)-10) { 
       vp->size*=2;
@@ -2843,7 +2858,7 @@ PROCEDURE recspk (x) {
   VERBATIM { 
   vp = SOP;
   record();
-  if (vp->p > vp->size || vp->vvo[6]==0) return; 
+  if (vp->p > vp->size || vp->vvo[6]==0) return 0; 
   if (vp->p > 0) {
     if (vp->vvo[0]!=0x0) vp->vvo[0][vp->p-1]=_lx;
     vp->vvo[6][vp->p-1]=spkht; // the spike
@@ -3387,7 +3402,7 @@ PROCEDURE wrecord (te) {
           wwo[wrp][k+j] += scale*_t_Psk[j+max]; // direct copy from the Psk table
         }
       }
-    } else if (twg>=t) { return;
+    } else if (twg>=t) { return 0;
     } else {
       for (ti=twg,k=(int)floor((twg-rebeg)/vdt+0.5);ti<=t && k<wwsz;ti+=vdt,k++) { 
         valps(ti,twg);  // valps() for pop spike calculation
@@ -3565,11 +3580,11 @@ FUNCTION flag () {
   ip=IDP; pg=ip->pg;
   if (FLAG==OK) { // callback -- DO NOT SET FROM HOC
     FLAG=0.;
-    if (stoprun) {slowset=0; return;}
+    if (stoprun) {slowset=0; return 0.0;}
     if (IDP->dbx==-1)printf("slowset fi:%d ix:%d ss:%g delt:%g t:%g\n",fi,ix,slowset,delt,t);
     if (t>slowset || ix>=pg->cesz) {  // done
       printf("Slow-setting of flag %d finished at %g: (%d,%g,%g)\n",fi,t,ix,delt,slowset); 
-      slowset=0.; return;
+      slowset=0.; return 0.0;
     }
     if (ix<pg->cesz) {
       lop(pg->ce,ix);
@@ -3581,12 +3596,12 @@ FUNCTION flag () {
       net_send((void**)0x0, wts,tpnt,delt,OK);
       #endif
     }
-    return;
+    return 0.0;
   }  
   if (slowset>0 && ifarg(3)) {
     printf("INTF6 flag() slowset ERR; attempted set during slowset: fi:%d ix:%d ss:%g delt:%g t:%g",\
            fi,ix,slowset,delt,t); 
-    return;
+    return 0.0;
   }
   ip = IDP; setfl=ifarg(3); 
   if (ifarg(4)) { slowset=*getarg(4); delt=slowset/pg->cesz; slowset+=t; } 
@@ -3758,7 +3773,7 @@ FUNCTION dopelearn () {
   Point_process *pnnt;
   int i , iCell, pot;
   double tmp,maxw,inc,d,tau,pdopet;
-  if(seadsetting!=3.) return; // seadsetting==3 for DOPE, must be set before network setup
+  if(seadsetting!=3.) return 0.0; // seadsetting==3 for DOPE, must be set before network setup
   pot = (int) *getarg(1); // 
   ip=IDP; pg=ip->pg;
   for(iCell=0;iCell<pg->cesz;iCell++){
