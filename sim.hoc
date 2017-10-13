@@ -5,8 +5,8 @@
 // Last update: 11/3/11 (georgec)
 
 // Stuff run-neuron does.  (Comment out when using run-neuron.)
-xopen("/usr/site/nrniv/simctrl/hoc/setup.hoc")
-xopen("/usr/site/nrniv/simctrl/hoc/nrnoc.hoc")
+xopen("setup.hoc")
+xopen("nrnoc.hoc")
 
 load_file("init.hoc")
 
